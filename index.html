@@ -2748,16 +2748,17 @@ Datum: ${datePart}`
                             }
 
                             // Reject if it's clearly NOT about a company
-                            const rejectSignals = ['metalband', 'metal band', 'muziekgroep', 'rock band', 'vocalist', 'bassist', 'guitarist', 'drummer', 'album', 'discografie', 'single', 'mythology', 'mytholog', 'titan', 'god ', 'goddess', 'genus', 'species', 'asteroid', 'crater', 'planet', 'fictional character', ' film ', 'movie', 'directed by', 'regisseur', 'horror', 'drama film', 'comedy film', 'television series', 'tv series', 'novel by', 'book by', 'poem', 'video game', 'starring', 'screenplay'];
+                            const rejectSignals = ['metalband', 'metal band', 'muziekgroep', 'rock band', 'vocalist', 'bassist', 'guitarist', 'drummer', 'album', 'discografie', 'single', 'mythology', 'mytholog', 'titan', 'god ', 'goddess', 'genus', 'species', 'asteroid', 'crater', 'planet', 'fictional character', 'film', 'movie', 'directed by', 'regisseur', 'horror', 'drama', 'comedy', 'television series', 'tv series', 'novel by', 'book by', 'poem', 'video game', 'starring', 'screenplay', 'actor', 'actress', 'cannabis', 'marijuana'];
                             const hasRejectSignal = rejectSignals.some(s => extractLower.includes(s));
                             if (hasRejectSignal) {
-                                console.log(`[Wikipedia] Skipping "${title}" — contains reject signal (music/mythology/etc.)`);
+                                console.log(`[Wikipedia] Skipping "${title}" — reject signal found in extract`);
                                 continue;
                             }
 
-                            // Validate it's likely about a company
+                            // Validate it's likely about a company (REQUIRED — no fallback for last query)
                             const companySignals = ['company', 'corporation', 'founded', 'headquarter', 'employees', 'business', 'bedrijf', 'opgericht', 'nv', 'bv', 'services', 'industry', 'revenue', 'ceo', 'multinational', 'information technology', 'ict', 'software', 'dienstverlen', 'technologi'];
                             const hasCompanySignal = companySignals.some(s => extractLower.includes(s));
+                            console.log(`[Wikipedia] Checking "${title}" — reject: ${hasRejectSignal}, company: ${hasCompanySignal}`);
                             if (hasCompanySignal) {
                                 clearTimeout(timeout);
                                 return {
