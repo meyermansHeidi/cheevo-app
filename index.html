@@ -3227,8 +3227,15 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                 enriched.rechtsvormFull = kbo.juridicalForm;
             }
             if (kbo.startDate) {
-                enriched.founded = kbo.startDate.substring(0, 4);
-                enriched.foundedSource = 'KBO/CBE';
+                const kboYear = parseInt(kbo.startDate.substring(0, 4));
+                const existingYear = enriched.founded ? parseInt(enriched.founded) : null;
+                // KBO startDate = juridische entiteit, niet altijd de historische oprichting
+                // Als Wikidata een oudere datum heeft, behoud die (bv. Delhaize 1867 vs KBO 2023)
+                if (!existingYear || (kboYear <= existingYear) || (kboYear < new Date().getFullYear() - 10)) {
+                    enriched.founded = String(kboYear);
+                    enriched.foundedSource = 'KBO/CBE';
+                }
+                enriched.kboStartDate = String(kboYear); // Bewaar KBO-datum apart
             }
             if (kbo.address && kbo.address.city) {
                 enriched.headquarters = kbo.address.city;
@@ -3389,8 +3396,8 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                 competitors: null
             };
         }
-        // 62-63: IT & Software
-        if (nace >= '62' && nace <= '63' || sector.includes('tech') || sector.includes('software') || sector.includes('internet') || sector.includes('cloud') || sector.includes('saas')) {
+        // 62-63: IT & Software & Electronics
+        if (nace >= '62' && nace <= '63' || sector.includes('tech') || sector.includes('software') || sector.includes('internet') || sector.includes('cloud') || sector.includes('saas') || sector.includes('electronic') || sector.includes('computer') || sector.includes('digital') || sector.includes('it ')) {
             return {
                 name: 'Technologie & Software',
                 avgDecisionWeeks: 6, bestInClass: 3, avgWeeklyCostPerDecision: 3200,
@@ -3409,8 +3416,8 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                 competitors: null
             };
         }
-        // 70-71: Consultancy & Management advies
-        if (nace >= '70' && nace <= '71' || sector.includes('consult') || sector.includes('project management') || sector.includes('advies')) {
+        // 70-71, 78, 82: Consultancy, Management advies & zakelijke dienstverlening
+        if (nace >= '70' && nace <= '71' || nace === '78' || nace === '82' || sector.includes('consult') || sector.includes('project management') || sector.includes('advies') || sector.includes('dienstverlening') || sector.includes('management') || sector.includes('agency')) {
             return {
                 name: 'Consultancy & Advies',
                 avgDecisionWeeks: 5, bestInClass: 2, avgWeeklyCostPerDecision: 3500,
