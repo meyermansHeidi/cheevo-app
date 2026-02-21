@@ -5620,7 +5620,13 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
 
             const runAgentsParallel = async () => {
                 setIsRunning(true);
-                setAgents(prev => prev.map(a => ({ ...a, status: 'thinking', result: null })));
+                // Staggered thinking animation
+                setAgents(prev => prev.map(a => ({ ...a, status: 'waiting', result: null })));
+                for (let i = 0; i < INITIAL_AGENTS.length; i++) {
+                    await new Promise(r => setTimeout(r, 150));
+                    if (!isMounted) return;
+                    setAgents(prev => prev.map((a, idx) => idx <= i ? { ...a, status: 'thinking' } : a));
+                }
 
                 // Sanitize inputs for prompt injection prevention
                 const sanitize = (str) => String(str || '').replace(/[`]/g, '');
@@ -5810,11 +5816,12 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 16, marginBottom: 24 }}>
                     {agents.map((agent, idx) => (
                         <div
-                            key={idx}
+                            key={`${idx}-${runKey}`}
                             className={`glass-card agent-card agent-${agent.type} ${agent.status === 'thinking' ? 'active' : ''} ${agent.status === 'done' ? 'completed' : ''}`}
                             style={{
-                                animation: agent.status === 'thinking' ? 'none' : agent.status === 'done' ? 'scaleIn 0.3s ease' : 'none',
-                                cursor: agent.status === 'done' ? 'pointer' : 'default'
+                                animation: agent.status === 'thinking' ? 'pulse 1.5s ease-in-out infinite' : agent.status === 'done' ? 'scaleIn 0.3s ease' : 'none',
+                                cursor: agent.status === 'done' ? 'pointer' : 'default',
+                                transition: 'all 0.3s ease'
                             }}
                             onClick={() => agent.status === 'done' && setSelectedAgent(agent)}
                             role={agent.status === 'done' ? 'button' : undefined}
