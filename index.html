@@ -4390,7 +4390,7 @@ Datum: ${datePart}`
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 16 }}>
                         <div style={{ padding: 16, background: 'rgba(6,214,160,0.06)', borderRadius: 12, textAlign: 'center' }}>
                             <div style={{ fontSize: 24, fontWeight: 700, color: '#06D6A0', fontFamily: "'Space Grotesk', sans-serif" }}>
-                                -€{Math.round(companyData.decisionDebt * 0.15 / 1000)}K
+                                -€{Math.round((parseFloat(companyData.decisionDebt) || 250000) * 0.15 / 1000)}K
                             </div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>
                                 {lang === 'nl' ? '/jaar bij +10 punten gezondheid' : '/year with +10 health points'}
@@ -4398,7 +4398,7 @@ Datum: ${datePart}`
                         </div>
                         <div style={{ padding: 16, background: 'rgba(6,214,160,0.06)', borderRadius: 12, textAlign: 'center' }}>
                             <div style={{ fontSize: 24, fontWeight: 700, color: '#06D6A0', fontFamily: "'Space Grotesk', sans-serif" }}>
-                                {Math.round(companyData.metrics.avgDecisionTime * 0.3)}d
+                                {Math.round((parseFloat(companyData.metrics.avgDecisionTime) || 5) * 0.3)}d
                             </div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>
                                 {lang === 'nl' ? 'snellere besluitvorming mogelijk' : 'faster decision-making possible'}
@@ -4406,7 +4406,7 @@ Datum: ${datePart}`
                         </div>
                         <div style={{ padding: 16, background: 'rgba(6,214,160,0.06)', borderRadius: 12, textAlign: 'center' }}>
                             <div style={{ fontSize: 24, fontWeight: 700, color: '#06D6A0', fontFamily: "'Space Grotesk', sans-serif" }}>
-                                {Math.max(70, Math.round(companyData.decisionHealthScore + 15))}/100
+                                {Math.max(70, Math.round((parseFloat(companyData.decisionHealthScore) || 60) + 15))}/100
                             </div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>
                                 {lang === 'nl' ? 'haalbare gezondheid met CheevO!' : 'achievable health with CheevO!'}
@@ -4415,8 +4415,8 @@ Datum: ${datePart}`
                     </div>
                     <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>
                         {lang === 'nl'
-                            ? 'Gebaseerd op sector-benchmarks en uw huidige Decision Health Score van ' + Math.round(companyData.decisionHealthScore) + '/100.'
-                            : 'Based on sector benchmarks and your current Decision Health Score of ' + Math.round(companyData.decisionHealthScore) + '/100.'}
+                            ? 'Gebaseerd op sector-benchmarks en uw huidige Decision Health Score van ' + Math.round(parseFloat(companyData.decisionHealthScore) || 60) + '/100.'
+                            : 'Based on sector benchmarks and your current Decision Health Score of ' + Math.round(parseFloat(companyData.decisionHealthScore) || 60) + '/100.'}
                     </p>
                 </div>
 
