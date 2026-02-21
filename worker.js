@@ -129,7 +129,7 @@ export default {
 
     // ─── Anthropic Proxy Route ───
     if (url.pathname === '/api/anthropic' && request.method === 'POST') {
-      if (!env.ANTHROPIC_KEY) {
+      if (!env.ANTHROPIC_API_KEY) {
         return corsResponse(env, origin, Response.json(
           { error: 'Anthropic API key niet geconfigureerd op server' },
           { status: 503 }
@@ -154,7 +154,7 @@ export default {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': env.ANTHROPIC_KEY,
+            'x-api-key': env.ANTHROPIC_API_KEY,
             'anthropic-version': '2023-06-01'
           },
           body: JSON.stringify({
