@@ -6315,7 +6315,11 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                         <div className="metric-card-label">{t(lang).activeDecisions}</div>
                     </div>
                     <div className="metric-card">
-                        <div className="metric-card-value">€{Math.round(companyData.decisionDebt / 100000)}M</div>
+                        <div className="metric-card-value">
+                            {companyData.decisionDebt >= 1000000
+                                ? `€${(companyData.decisionDebt / 1000000).toFixed(1)}M`
+                                : `€${Math.round(companyData.decisionDebt / 1000)}K`}
+                        </div>
                         <div className="metric-card-label">{t(lang).debtMetric}</div>
                     </div>
                 </div>
@@ -6340,18 +6344,18 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 16 }}>
                         <div style={{ padding: 16, background: 'rgba(6,214,160,0.06)', borderRadius: 12, textAlign: 'center' }}>
                             <div style={{ fontSize: 24, fontWeight: 700, color: '#06D6A0', fontFamily: "'Space Grotesk', sans-serif" }}>
-                                -€{Math.round((parseFloat(companyData.decisionDebt) || 250000) * 0.15 / 1000)}K
+                                €{Math.max(3, Math.round((parseFloat(companyData.decisionDebt) || 250000) * 0.15 / 1000))}K
                             </div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>
-                                {lang === 'nl' ? '/jaar bij +10 punten gezondheid' : '/year with +10 health points'}
+                                {lang === 'nl' ? 'potentiële jaarlijkse besparing' : 'potential annual savings'}
                             </div>
                         </div>
                         <div style={{ padding: 16, background: 'rgba(6,214,160,0.06)', borderRadius: 12, textAlign: 'center' }}>
                             <div style={{ fontSize: 24, fontWeight: 700, color: '#06D6A0', fontFamily: "'Space Grotesk', sans-serif" }}>
-                                {Math.round((parseFloat(companyData.metrics.avgDecisionTime) || 5) * 0.3)}d
+                                {Math.max(1, Math.round((parseFloat(companyData.metrics.avgDecisionTime) || 5) * 0.3))} {lang === 'nl' ? 'wkn' : 'wks'}
                             </div>
                             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>
-                                {lang === 'nl' ? 'snellere besluitvorming mogelijk' : 'faster decision-making possible'}
+                                {lang === 'nl' ? 'sneller per besluit (vs. nu)' : 'faster per decision (vs. now)'}
                             </div>
                         </div>
                         <div style={{ padding: 16, background: 'rgba(6,214,160,0.06)', borderRadius: 12, textAlign: 'center' }}>
@@ -6418,6 +6422,46 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                     }}>
                         {lang === 'nl' ? '+ Nieuw besluit →' : '+ New decision →'}
                     </button>
+                </div>
+
+                {/* CFO Quick View — Financieel Overzicht */}
+                <div style={{ marginTop: 16, marginBottom: 16, padding: '14px 20px', borderRadius: 12, background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.12)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                        <span style={{ fontSize: 14 }}>💰</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                            {lang === 'nl' ? 'Financieel Snapshot' : 'Financial Snapshot'}
+                        </span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>
+                        <div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: '#FBB' + 'F24' }}>€{Math.round(companyData.decisionDebt / 1000)}K</div>
+                            <div>{lang === 'nl' ? 'Vastgezet kapitaal' : 'Tied-up capital'}</div>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: '#06D6A0' }}>€{Math.max(3, Math.round((companyData.decisionDebt || 250000) * 0.15 / 1000))}K</div>
+                            <div>{lang === 'nl' ? 'Besparingspotentieel' : 'Savings potential'}</div>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: '#A78BFA' }}>€{Math.round((companyData.decisionDebt || 250000) / (companyData.metrics.openDecisions || 5) / 1000)}K</div>
+                            <div>{lang === 'nl' ? 'Per open besluit' : 'Per open decision'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Security & Compliance Footer — IT Manager / Privacy Officer */}
+                <div style={{ marginBottom: 16, padding: '12px 20px', borderRadius: 10, background: 'rgba(6,214,160,0.03)', border: '1px solid rgba(6,214,160,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
+                        <span>🔒</span><span>{lang === 'nl' ? 'Server-side verwerking' : 'Server-side processing'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
+                        <span>🛡️</span><span>{lang === 'nl' ? 'GDPR-conform' : 'GDPR compliant'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
+                        <span>🚫</span><span>{lang === 'nl' ? 'Geen data opslag' : 'No data storage'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
+                        <span>⚡</span><span>{lang === 'nl' ? 'Rate-limited API' : 'Rate-limited API'}</span>
+                    </div>
                 </div>
 
                 {/* Pricing hint */}
