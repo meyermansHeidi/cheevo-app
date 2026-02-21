@@ -3046,8 +3046,8 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
         };
     }
 
-    // --- Fetch KBO/CBE data direct via CBEAPI.be ---
-    const CBEAPI_TOKEN = 'msOBg95WsUaFibYi5HvAdTbEVLOl0iDc';
+    // --- Fetch KBO/CBE data via Cloudflare Worker proxy ---
+    // Token zit veilig server-side in de Worker environment variables
 
     async function fetchKBOData(companyName, domain) {
         // Alleen voor Belgische bedrijven (.be domein)
@@ -3059,15 +3059,9 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
         console.log(`[KBO] Fetching Belgian company data for "${companyName}"...`);
 
         try {
-            // Zoek op bedrijfsnaam direct via CBEAPI
-            const searchUrl = `https://cbeapi.be/api/v1/company/search?name=${encodeURIComponent(companyName)}&lang=nl`;
-            const response = await fetch(searchUrl, {
-                headers: {
-                    'Authorization': 'Bearer ' + CBEAPI_TOKEN,
-                    'Accept': 'application/json',
-                    'Accept-Language': 'nl'
-                }
-            });
+            // Zoek op bedrijfsnaam via Worker proxy (CORS-safe, token server-side)
+            const searchUrl = `${WORKER_URL}/api/kbo/v1/company/search?name=${encodeURIComponent(companyName)}&lang=nl`;
+            const response = await fetch(searchUrl);
 
             if (!response.ok) {
                 console.warn(`[KBO] API returned ${response.status}`);
