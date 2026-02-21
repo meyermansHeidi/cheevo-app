@@ -1820,64 +1820,190 @@
     // ─── Agent Avatars — unique character faces for The Decision Squad ───
     const AgentAvatar = ({ type, size = 56, color = '#fff' }) => {
         const s = size;
+        const c = React.createElement;
+
+        // Helper: glowing ring defs
+        const glowDefs = (id, col) => c('defs', null,
+            c('radialGradient', { id: id+'glow', cx: '50%', cy: '50%', r: '50%' },
+                c('stop', { offset: '70%', stopColor: col, stopOpacity: 0 }),
+                c('stop', { offset: '100%', stopColor: col, stopOpacity: 0.25 })
+            ),
+            c('linearGradient', { id: id+'skin', x1: 0, y1: 0, x2: 0, y2: 1 },
+                c('stop', { offset: '0%', stopColor: '#E8C4A0' }),
+                c('stop', { offset: '100%', stopColor: '#D4A574' })
+            )
+        );
+
         const avatars = {
-            // Nova — De Visionair: ethereal eye with orbiting rings (like a visionary seeing the future)
-            framing: React.createElement('svg', { width: s, height: s, viewBox: '0 0 64 64', fill: 'none' },
-                React.createElement('circle', { cx: 32, cy: 32, r: 28, fill: '#A78BFA22', stroke: '#A78BFA', strokeWidth: 1.5 }),
-                React.createElement('ellipse', { cx: 32, cy: 32, rx: 26, ry: 10, fill: 'none', stroke: '#A78BFA55', strokeWidth: 1, transform: 'rotate(-25 32 32)' }),
-                React.createElement('ellipse', { cx: 32, cy: 32, rx: 26, ry: 10, fill: 'none', stroke: '#A78BFA55', strokeWidth: 1, transform: 'rotate(25 32 32)' }),
-                React.createElement('circle', { cx: 32, cy: 32, r: 10, fill: '#A78BFA33', stroke: '#A78BFA', strokeWidth: 1.5 }),
-                React.createElement('circle', { cx: 32, cy: 32, r: 4.5, fill: '#A78BFA' }),
-                React.createElement('circle', { cx: 34, cy: 30, r: 1.5, fill: '#fff', opacity: 0.8 })
+            // Nova — De Visionair: female face, third-eye glow, silver hair
+            framing: c('svg', { width: s, height: s, viewBox: '0 0 64 64', fill: 'none' },
+                glowDefs('nova', '#A78BFA'),
+                // Outer glow ring
+                c('circle', { cx: 32, cy: 32, r: 30, fill: 'url(#novaglow)' }),
+                c('circle', { cx: 32, cy: 32, r: 28, fill: 'none', stroke: '#A78BFA', strokeWidth: 1.2, opacity: 0.6 }),
+                c('circle', { cx: 32, cy: 32, r: 25, fill: 'none', stroke: '#A78BFA', strokeWidth: 0.8, opacity: 0.3, strokeDasharray: '3 4' }),
+                // Hair (flowing silver-purple)
+                c('ellipse', { cx: 32, cy: 28, rx: 17, ry: 18, fill: '#2D1B4E' }),
+                c('path', { d: 'M15 30 Q14 45 20 52 Q15 42 16 34Z', fill: '#A78BFA', opacity: 0.4 }),
+                c('path', { d: 'M49 30 Q50 45 44 52 Q49 42 48 34Z', fill: '#A78BFA', opacity: 0.4 }),
+                // Face
+                c('ellipse', { cx: 32, cy: 34, rx: 12, ry: 14, fill: 'url(#novaskin)' }),
+                // Eyes
+                c('ellipse', { cx: 27, cy: 33, rx: 2.5, ry: 2, fill: '#1a1a2e' }),
+                c('ellipse', { cx: 37, cy: 33, rx: 2.5, ry: 2, fill: '#1a1a2e' }),
+                c('circle', { cx: 27.5, cy: 32.5, r: 1, fill: '#A78BFA' }),
+                c('circle', { cx: 37.5, cy: 32.5, r: 1, fill: '#A78BFA' }),
+                c('circle', { cx: 28, cy: 32, r: 0.5, fill: '#fff' }),
+                c('circle', { cx: 38, cy: 32, r: 0.5, fill: '#fff' }),
+                // Eyebrows
+                c('path', { d: 'M24 30 Q27 28 30 30', stroke: '#2D1B4E', strokeWidth: 1, fill: 'none' }),
+                c('path', { d: 'M34 30 Q37 28 40 30', stroke: '#2D1B4E', strokeWidth: 1, fill: 'none' }),
+                // Nose & mouth
+                c('path', { d: 'M32 35 L31 38', stroke: '#C4956A', strokeWidth: 0.8 }),
+                c('path', { d: 'M29 41 Q32 43 35 41', stroke: '#C4956A', strokeWidth: 0.8, fill: 'none' }),
+                // Third eye glow
+                c('circle', { cx: 32, cy: 26, r: 2.5, fill: '#A78BFA', opacity: 0.7 }),
+                c('circle', { cx: 32, cy: 26, r: 1.2, fill: '#fff', opacity: 0.9 }),
+                // Sparkle accents
+                c('circle', { cx: 12, cy: 18, r: 1, fill: '#A78BFA', opacity: 0.6 }),
+                c('circle', { cx: 52, cy: 20, r: 0.8, fill: '#A78BFA', opacity: 0.5 }),
+                c('circle', { cx: 48, cy: 48, r: 1, fill: '#A78BFA', opacity: 0.4 })
             ),
-            // Byte — De Analyst: digital brain / circuit head
-            data: React.createElement('svg', { width: s, height: s, viewBox: '0 0 64 64', fill: 'none' },
-                React.createElement('circle', { cx: 32, cy: 32, r: 28, fill: '#60A5FA22', stroke: '#60A5FA', strokeWidth: 1.5 }),
-                React.createElement('rect', { x: 20, y: 18, width: 24, height: 28, rx: 6, fill: '#60A5FA22', stroke: '#60A5FA', strokeWidth: 1.5 }),
-                React.createElement('line', { x1: 26, y1: 26, x2: 26, y2: 30, stroke: '#60A5FA', strokeWidth: 1.5 }),
-                React.createElement('line', { x1: 32, y1: 24, x2: 32, y2: 30, stroke: '#60A5FA', strokeWidth: 1.5 }),
-                React.createElement('line', { x1: 38, y1: 26, x2: 38, y2: 30, stroke: '#60A5FA', strokeWidth: 1.5 }),
-                React.createElement('circle', { cx: 26, cy: 32, r: 2, fill: '#60A5FA' }),
-                React.createElement('circle', { cx: 32, cy: 32, r: 2, fill: '#60A5FA' }),
-                React.createElement('circle', { cx: 38, cy: 32, r: 2, fill: '#60A5FA' }),
-                React.createElement('line', { x1: 26, y1: 34, x2: 26, y2: 38, stroke: '#60A5FA', strokeWidth: 1 }),
-                React.createElement('line', { x1: 32, y1: 34, x2: 32, y2: 40, stroke: '#60A5FA', strokeWidth: 1 }),
-                React.createElement('line', { x1: 38, y1: 34, x2: 38, y2: 38, stroke: '#60A5FA', strokeWidth: 1 }),
-                React.createElement('line', { x1: 16, y1: 28, x2: 20, y2: 28, stroke: '#60A5FA55', strokeWidth: 1 }),
-                React.createElement('line', { x1: 16, y1: 36, x2: 20, y2: 36, stroke: '#60A5FA55', strokeWidth: 1 }),
-                React.createElement('line', { x1: 44, y1: 28, x2: 48, y2: 28, stroke: '#60A5FA55', strokeWidth: 1 }),
-                React.createElement('line', { x1: 44, y1: 36, x2: 48, y2: 36, stroke: '#60A5FA55', strokeWidth: 1 })
+
+            // Byte — De Analyst: male, glasses, sharp jawline, blue tech glow
+            data: c('svg', { width: s, height: s, viewBox: '0 0 64 64', fill: 'none' },
+                glowDefs('byte', '#60A5FA'),
+                c('circle', { cx: 32, cy: 32, r: 30, fill: 'url(#byteglow)' }),
+                c('circle', { cx: 32, cy: 32, r: 28, fill: 'none', stroke: '#60A5FA', strokeWidth: 1.2, opacity: 0.6 }),
+                c('circle', { cx: 32, cy: 32, r: 25, fill: 'none', stroke: '#60A5FA', strokeWidth: 0.8, opacity: 0.3, strokeDasharray: '3 4' }),
+                // Hair (short dark)
+                c('ellipse', { cx: 32, cy: 26, rx: 15, ry: 13, fill: '#1a1a2e' }),
+                c('rect', { x: 17, y: 24, width: 30, height: 6, rx: 3, fill: '#1a1a2e' }),
+                // Face
+                c('ellipse', { cx: 32, cy: 34, rx: 12, ry: 14, fill: 'url(#byteskin)' }),
+                // Glasses
+                c('rect', { x: 22, y: 30, width: 9, height: 7, rx: 2, fill: 'none', stroke: '#60A5FA', strokeWidth: 1.2 }),
+                c('rect', { x: 33, y: 30, width: 9, height: 7, rx: 2, fill: 'none', stroke: '#60A5FA', strokeWidth: 1.2 }),
+                c('line', { x1: 31, y1: 33, x2: 33, y2: 33, stroke: '#60A5FA', strokeWidth: 1 }),
+                c('line', { x1: 22, y1: 33, x2: 18, y2: 31, stroke: '#60A5FA', strokeWidth: 0.8 }),
+                c('line', { x1: 42, y1: 33, x2: 46, y2: 31, stroke: '#60A5FA', strokeWidth: 0.8 }),
+                // Eyes behind glasses
+                c('circle', { cx: 26.5, cy: 33.5, r: 1.5, fill: '#1a1a2e' }),
+                c('circle', { cx: 37.5, cy: 33.5, r: 1.5, fill: '#1a1a2e' }),
+                c('circle', { cx: 27, cy: 33, r: 0.6, fill: '#60A5FA' }),
+                c('circle', { cx: 38, cy: 33, r: 0.6, fill: '#60A5FA' }),
+                // Nose & mouth
+                c('path', { d: 'M32 36 L31.5 38.5', stroke: '#C4956A', strokeWidth: 0.8 }),
+                c('path', { d: 'M29 42 Q32 43 35 42', stroke: '#C4956A', strokeWidth: 0.8, fill: 'none' }),
+                // Beard stubble
+                c('ellipse', { cx: 32, cy: 44, rx: 8, ry: 4, fill: '#1a1a2e', opacity: 0.15 }),
+                // Data particles
+                c('circle', { cx: 10, cy: 15, r: 1, fill: '#60A5FA', opacity: 0.6 }),
+                c('circle', { cx: 54, cy: 22, r: 0.8, fill: '#60A5FA', opacity: 0.5 }),
+                c('circle', { cx: 8, cy: 50, r: 0.7, fill: '#60A5FA', opacity: 0.4 })
             ),
-            // Spark — De Strateeg: lightning bolt compass (strategy + spark)
-            options: React.createElement('svg', { width: s, height: s, viewBox: '0 0 64 64', fill: 'none' },
-                React.createElement('circle', { cx: 32, cy: 32, r: 28, fill: '#06D6A022', stroke: '#06D6A0', strokeWidth: 1.5 }),
-                React.createElement('polygon', { points: '32,12 28,28 36,28 24,52 40,32 32,32 40,16', fill: '#06D6A0', opacity: 0.9 }),
-                React.createElement('circle', { cx: 32, cy: 32, r: 18, fill: 'none', stroke: '#06D6A055', strokeWidth: 1, strokeDasharray: '4 3' }),
-                React.createElement('circle', { cx: 32, cy: 14, r: 2, fill: '#06D6A0' }),
-                React.createElement('circle', { cx: 50, cy: 32, r: 2, fill: '#06D6A0' }),
-                React.createElement('circle', { cx: 14, cy: 32, r: 2, fill: '#06D6A0' }),
-                React.createElement('circle', { cx: 32, cy: 50, r: 2, fill: '#06D6A0' })
+
+            // Spark — De Strateeg: female, dynamic hair, confident look, green energy
+            options: c('svg', { width: s, height: s, viewBox: '0 0 64 64', fill: 'none' },
+                glowDefs('spark', '#06D6A0'),
+                c('circle', { cx: 32, cy: 32, r: 30, fill: 'url(#sparkglow)' }),
+                c('circle', { cx: 32, cy: 32, r: 28, fill: 'none', stroke: '#06D6A0', strokeWidth: 1.2, opacity: 0.6 }),
+                c('circle', { cx: 32, cy: 32, r: 25, fill: 'none', stroke: '#06D6A0', strokeWidth: 0.8, opacity: 0.3, strokeDasharray: '3 4' }),
+                // Hair (dynamic dark with green highlights, swept to side)
+                c('ellipse', { cx: 32, cy: 27, rx: 16, ry: 16, fill: '#1B3A2E' }),
+                c('path', { d: 'M16 28 Q12 38 18 50', stroke: '#06D6A0', strokeWidth: 1.5, fill: 'none', opacity: 0.4 }),
+                c('path', { d: 'M48 26 Q52 35 46 48', stroke: '#06D6A0', strokeWidth: 1.5, fill: 'none', opacity: 0.4 }),
+                c('path', { d: 'M20 20 Q28 14 44 20', stroke: '#06D6A0', strokeWidth: 1, fill: 'none', opacity: 0.3 }),
+                // Face
+                c('ellipse', { cx: 32, cy: 34, rx: 12, ry: 14, fill: 'url(#sparkskin)' }),
+                // Eyes (sharp, determined)
+                c('ellipse', { cx: 27, cy: 33, rx: 2.8, ry: 2, fill: '#1a1a2e' }),
+                c('ellipse', { cx: 37, cy: 33, rx: 2.8, ry: 2, fill: '#1a1a2e' }),
+                c('circle', { cx: 27.5, cy: 32.5, r: 1.2, fill: '#06D6A0' }),
+                c('circle', { cx: 37.5, cy: 32.5, r: 1.2, fill: '#06D6A0' }),
+                c('circle', { cx: 28, cy: 32, r: 0.5, fill: '#fff' }),
+                c('circle', { cx: 38, cy: 32, r: 0.5, fill: '#fff' }),
+                // Bold eyebrows
+                c('path', { d: 'M23 29.5 Q27 27.5 30.5 29.5', stroke: '#1B3A2E', strokeWidth: 1.3, fill: 'none' }),
+                c('path', { d: 'M33.5 29.5 Q37 27.5 41 29.5', stroke: '#1B3A2E', strokeWidth: 1.3, fill: 'none' }),
+                // Nose & confident smile
+                c('path', { d: 'M32 35 L31 38', stroke: '#C4956A', strokeWidth: 0.8 }),
+                c('path', { d: 'M28 41 Q32 44 36 41', stroke: '#C4956A', strokeWidth: 1, fill: 'none' }),
+                // Lightning bolt earring
+                c('polygon', { points: '17,36 16,39 18,38 17,41', fill: '#06D6A0', opacity: 0.8 }),
+                // Energy sparks
+                c('circle', { cx: 10, cy: 12, r: 1.2, fill: '#06D6A0', opacity: 0.6 }),
+                c('circle', { cx: 54, cy: 18, r: 0.8, fill: '#06D6A0', opacity: 0.5 }),
+                c('circle', { cx: 52, cy: 50, r: 1, fill: '#06D6A0', opacity: 0.4 })
             ),
-            // Shield — De Bewaker: armored shield with watchful eye
-            risk: React.createElement('svg', { width: s, height: s, viewBox: '0 0 64 64', fill: 'none' },
-                React.createElement('circle', { cx: 32, cy: 32, r: 28, fill: '#FBBF2422', stroke: '#FBBF24', strokeWidth: 1.5 }),
-                React.createElement('path', { d: 'M32 10 L48 18 V34 C48 44 40 52 32 56 C24 52 16 44 16 34 V18 Z', fill: '#FBBF2418', stroke: '#FBBF24', strokeWidth: 1.5 }),
-                React.createElement('circle', { cx: 32, cy: 30, r: 7, fill: 'none', stroke: '#FBBF24', strokeWidth: 1.5 }),
-                React.createElement('circle', { cx: 32, cy: 30, r: 3, fill: '#FBBF24' }),
-                React.createElement('line', { x1: 32, y1: 39, x2: 32, y2: 46, stroke: '#FBBF24', strokeWidth: 1.5 }),
-                React.createElement('line', { x1: 28, y1: 44, x2: 36, y2: 44, stroke: '#FBBF24', strokeWidth: 1.5 })
+
+            // Shield — De Bewaker: male, strong features, scar, gold/amber glow
+            risk: c('svg', { width: s, height: s, viewBox: '0 0 64 64', fill: 'none' },
+                glowDefs('shield', '#FBBF24'),
+                c('circle', { cx: 32, cy: 32, r: 30, fill: 'url(#shieldglow)' }),
+                c('circle', { cx: 32, cy: 32, r: 28, fill: 'none', stroke: '#FBBF24', strokeWidth: 1.2, opacity: 0.6 }),
+                c('circle', { cx: 32, cy: 32, r: 25, fill: 'none', stroke: '#FBBF24', strokeWidth: 0.8, opacity: 0.3, strokeDasharray: '3 4' }),
+                // Hair (buzzcut dark)
+                c('ellipse', { cx: 32, cy: 26, rx: 14, ry: 12, fill: '#2A1F0E' }),
+                // Face (square jaw)
+                c('path', { d: 'M20 28 Q20 20 32 20 Q44 20 44 28 L44 38 Q44 50 32 50 Q20 50 20 38Z', fill: 'url(#shieldskin)' }),
+                // Eyes (intense)
+                c('ellipse', { cx: 27, cy: 33, rx: 2.5, ry: 1.8, fill: '#1a1a2e' }),
+                c('ellipse', { cx: 37, cy: 33, rx: 2.5, ry: 1.8, fill: '#1a1a2e' }),
+                c('circle', { cx: 27, cy: 32.8, r: 1, fill: '#FBBF24' }),
+                c('circle', { cx: 37, cy: 32.8, r: 1, fill: '#FBBF24' }),
+                c('circle', { cx: 27.5, cy: 32.5, r: 0.4, fill: '#fff' }),
+                c('circle', { cx: 37.5, cy: 32.5, r: 0.4, fill: '#fff' }),
+                // Heavy brows
+                c('path', { d: 'M23 30 Q27 28 31 30', stroke: '#2A1F0E', strokeWidth: 1.5, fill: 'none' }),
+                c('path', { d: 'M33 30 Q37 28 41 30', stroke: '#2A1F0E', strokeWidth: 1.5, fill: 'none' }),
+                // Nose & stern mouth
+                c('path', { d: 'M32 35 L31 38.5 L33 38.5', stroke: '#C4956A', strokeWidth: 0.8, fill: 'none' }),
+                c('path', { d: 'M29 42 L35 42', stroke: '#C4956A', strokeWidth: 1 }),
+                // Small scar on cheek
+                c('path', { d: 'M40 36 L42 40', stroke: '#C4956A', strokeWidth: 0.8, opacity: 0.6 }),
+                // Shield emblem on forehead
+                c('path', { d: 'M32 22 L36 24 V27 Q36 29 32 30 Q28 29 28 27 V24Z', fill: '#FBBF24', opacity: 0.3, stroke: '#FBBF24', strokeWidth: 0.5 }),
+                // Gold particles
+                c('circle', { cx: 10, cy: 16, r: 1, fill: '#FBBF24', opacity: 0.6 }),
+                c('circle', { cx: 54, cy: 46, r: 0.8, fill: '#FBBF24', opacity: 0.5 })
             ),
-            // Sage — De Adviseur: wise owl / crystal ball with stars
-            recommendation: React.createElement('svg', { width: s, height: s, viewBox: '0 0 64 64', fill: 'none' },
-                React.createElement('circle', { cx: 32, cy: 32, r: 28, fill: '#EC489922', stroke: '#EC4899', strokeWidth: 1.5 }),
-                React.createElement('circle', { cx: 32, cy: 34, r: 14, fill: '#EC489918', stroke: '#EC4899', strokeWidth: 1.5 }),
-                React.createElement('path', { d: 'M22 48 Q27 44 32 46 Q37 44 42 48', stroke: '#EC4899', strokeWidth: 1.5, fill: 'none' }),
-                React.createElement('polygon', { points: '32,14 33.5,19 39,19 34.5,22 36,27 32,24 28,27 29.5,22 25,19 30.5,19', fill: '#EC4899', opacity: 0.9 }),
-                React.createElement('polygon', { points: '20,22 21,24 23,24 21.5,25.5 22,27.5 20,26 18,27.5 18.5,25.5 17,24 19,24', fill: '#EC4899', opacity: 0.5 }),
-                React.createElement('polygon', { points: '44,22 45,24 47,24 45.5,25.5 46,27.5 44,26 42,27.5 42.5,25.5 41,24 43,24', fill: '#EC4899', opacity: 0.5 }),
-                React.createElement('circle', { cx: 28, cy: 34, r: 1.5, fill: '#EC4899', opacity: 0.4 }),
-                React.createElement('circle', { cx: 36, cy: 36, r: 1, fill: '#EC4899', opacity: 0.4 }),
-                React.createElement('circle', { cx: 32, cy: 40, r: 1.2, fill: '#EC4899', opacity: 0.3 })
+
+            // Sage — De Adviseur: female, wise eyes, elegant, pink/magenta aura
+            recommendation: c('svg', { width: s, height: s, viewBox: '0 0 64 64', fill: 'none' },
+                glowDefs('sage', '#EC4899'),
+                c('circle', { cx: 32, cy: 32, r: 30, fill: 'url(#sageglow)' }),
+                c('circle', { cx: 32, cy: 32, r: 28, fill: 'none', stroke: '#EC4899', strokeWidth: 1.2, opacity: 0.6 }),
+                c('circle', { cx: 32, cy: 32, r: 25, fill: 'none', stroke: '#EC4899', strokeWidth: 0.8, opacity: 0.3, strokeDasharray: '3 4' }),
+                // Hair (elegant updo, dark with magenta tints)
+                c('ellipse', { cx: 32, cy: 24, rx: 16, ry: 14, fill: '#2E1525' }),
+                c('ellipse', { cx: 32, cy: 18, rx: 10, ry: 8, fill: '#2E1525' }),
+                c('path', { d: 'M22 16 Q26 10 32 12 Q38 10 42 16', stroke: '#EC4899', strokeWidth: 0.8, fill: 'none', opacity: 0.4 }),
+                // Face (elegant, softer)
+                c('ellipse', { cx: 32, cy: 34, rx: 11.5, ry: 14, fill: 'url(#sageskin)' }),
+                // Eyes (wise, kind)
+                c('ellipse', { cx: 27, cy: 33, rx: 2.8, ry: 2.2, fill: '#1a1a2e' }),
+                c('ellipse', { cx: 37, cy: 33, rx: 2.8, ry: 2.2, fill: '#1a1a2e' }),
+                c('circle', { cx: 27, cy: 32.5, r: 1.3, fill: '#EC4899' }),
+                c('circle', { cx: 37, cy: 32.5, r: 1.3, fill: '#EC4899' }),
+                c('circle', { cx: 27.5, cy: 32, r: 0.5, fill: '#fff' }),
+                c('circle', { cx: 37.5, cy: 32, r: 0.5, fill: '#fff' }),
+                // Elegant eyebrows
+                c('path', { d: 'M24 30 Q27 28.5 30 30.5', stroke: '#2E1525', strokeWidth: 1, fill: 'none' }),
+                c('path', { d: 'M34 30.5 Q37 28.5 40 30', stroke: '#2E1525', strokeWidth: 1, fill: 'none' }),
+                // Nose & gentle smile
+                c('path', { d: 'M32 35 L31 38', stroke: '#C4956A', strokeWidth: 0.7 }),
+                c('path', { d: 'M28.5 41.5 Q32 44 35.5 41.5', stroke: '#D47070', strokeWidth: 0.9, fill: 'none' }),
+                // Earrings (crystal drops)
+                c('circle', { cx: 19.5, cy: 38, r: 1.5, fill: '#EC4899', opacity: 0.7 }),
+                c('circle', { cx: 44.5, cy: 38, r: 1.5, fill: '#EC4899', opacity: 0.7 }),
+                // Star wisdom mark
+                c('polygon', { points: '32,22 32.8,24 35,24.2 33.2,25.5 33.6,27.5 32,26.5 30.4,27.5 30.8,25.5 29,24.2 31.2,24', fill: '#EC4899', opacity: 0.5 }),
+                // Aura particles
+                c('circle', { cx: 8, cy: 20, r: 1, fill: '#EC4899', opacity: 0.6 }),
+                c('circle', { cx: 56, cy: 18, r: 0.8, fill: '#EC4899', opacity: 0.5 }),
+                c('circle', { cx: 52, cy: 50, r: 1, fill: '#EC4899', opacity: 0.4 }),
+                c('circle', { cx: 12, cy: 52, r: 0.7, fill: '#EC4899', opacity: 0.3 })
             )
         };
         return avatars[type] || avatars.framing;
