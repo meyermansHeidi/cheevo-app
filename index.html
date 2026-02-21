@@ -2303,6 +2303,9 @@
     };
     const ANTHROPIC_MODEL = 'claude-sonnet-4-5-20250929';
 
+    // Cloudflare Worker proxy URL voor KBO, GNews, Finnhub
+    const WORKER_URL = 'https://cheev-api.heidi-9a9.workers.dev';
+
     // Direct call to Anthropic API from browser (CORS enabled with dangerous-direct-browser-access header)
     async function callAnthropicDirect(systemPrompt, userMessage, maxTokens = 2048, temperature = 0.7) {
         if (!ensureApiKey()) throw new Error('No API key — using demo mode');
@@ -3043,6 +3046,77 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
         };
     }
 
+    // --- Fetch KBO/CBE data via Cloudflare Worker proxy ---
+    async function fetchKBOData(companyName, domain) {
+        // Alleen voor Belgische bedrijven (.be domein)
+        if (!domain || !domain.endsWith('.be')) {
+            console.log(`[KBO] Skipping — domain "${domain}" is not .be`);
+            return null;
+        }
+
+        console.log(`[KBO] Fetching Belgian company data for "${companyName}"...`);
+
+        try {
+            // Zoek op bedrijfsnaam via CBEAPI
+            const searchUrl = `${WORKER_URL}/api/kbo/v1/company/search?name=${encodeURIComponent(companyName)}&lang=nl`;
+            const response = await fetch(searchUrl);
+
+            if (!response.ok) {
+                console.warn(`[KBO] API returned ${response.status}`);
+                return null;
+            }
+
+            const result = await response.json();
+            const companies = result.data || [];
+
+            if (companies.length === 0) {
+                console.log(`[KBO] No results for "${companyName}"`);
+                return null;
+            }
+
+            // Zoek het beste match: exacte naam match heeft voorkeur
+            const companyLower = companyName.toLowerCase();
+            let bestMatch = companies.find(c =>
+                c.denomination?.toLowerCase() === companyLower ||
+                c.abbreviation?.toLowerCase() === companyLower ||
+                c.commercial_name?.toLowerCase() === companyLower
+            );
+
+            // Als geen exacte match, neem eerste actieve bedrijf
+            if (!bestMatch) {
+                bestMatch = companies.find(c => c.status === 'active') || companies[0];
+            }
+
+            console.log(`[KBO] Found: ${bestMatch.denomination} (${bestMatch.cbe_number_formatted})`);
+
+            return {
+                cbeNumber: bestMatch.cbe_number,
+                cbeNumberFormatted: bestMatch.cbe_number_formatted,
+                denomination: bestMatch.denomination,
+                abbreviation: bestMatch.abbreviation,
+                commercialName: bestMatch.commercial_name,
+                denominationWithLegalForm: bestMatch.denomination_with_legal_form,
+                juridicalForm: bestMatch.juridical_form,
+                juridicalFormShort: bestMatch.juridical_form_short,
+                status: bestMatch.status,
+                juridicalSituation: bestMatch.juridical_situation,
+                startDate: bestMatch.start_date,
+                address: bestMatch.address,
+                contactInfos: bestMatch.contact_infos,
+                naceActivities: bestMatch.nace_activities,
+                establishments: bestMatch.establishments,
+                type: bestMatch.type,
+                prettyType: bestMatch.pretty_type,
+                source: 'KBO/CBE via CBEAPI.be',
+                url: `https://kbopub.economie.fgov.be/kbopub/toonondernemingps.html?ondernemingsnummer=${bestMatch.cbe_number}`,
+                fetchedAt: new Date().toISOString()
+            };
+        } catch (error) {
+            console.warn(`[KBO] Fetch failed:`, error.message);
+            return null;
+        }
+    }
+
     // --- Fetch all real-time data in parallel ---
     async function fetchRealTimeCompanyData(companyName, domain) {
         console.log(`[RealTime] Fetching data for "${companyName}" (${domain})...`);
@@ -3051,24 +3125,28 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
         const results = await Promise.allSettled([
             fetchWikipediaData(companyName, domain),
             fetchWikidataCompanyInfo(companyName, domain),
+            fetchKBOData(companyName, domain),
         ]);
 
         const wikipedia = results[0].status === 'fulfilled' ? results[0].value : null;
         const wikidata = results[1].status === 'fulfilled' ? results[1].value : null;
+        const kbo = results[2].status === 'fulfilled' ? results[2].value : null;
 
         const elapsed = Date.now() - startTime;
-        console.log(`[RealTime] Fetched in ${elapsed}ms — Wikipedia: ${wikipedia ? 'YES' : 'no'}, Wikidata: ${wikidata ? 'YES' : 'no'}`);
+        console.log(`[RealTime] Fetched in ${elapsed}ms — Wikipedia: ${wikipedia ? 'YES' : 'no'}, Wikidata: ${wikidata ? 'YES' : 'no'}, KBO: ${kbo ? 'YES' : 'no'}`);
 
         // Build sources array for transparency
         const sources = [];
         if (wikipedia) sources.push({ name: wikipedia.source, url: wikipedia.url, type: 'description' });
         if (wikidata) sources.push({ name: 'Wikidata', url: wikidata.url, type: 'structured' });
+        if (kbo) sources.push({ name: 'KBO/CBE', url: kbo.url, type: 'official' });
         // Google Favicon is always available
         sources.push({ name: 'Google Favicons', url: `https://www.google.com/s2/favicons?domain=${domain}&sz=128`, type: 'logo' });
 
         return {
             wikipedia,
             wikidata,
+            kbo,
             sources,
             fetchedAt: new Date().toISOString(),
             fetchDuration: elapsed
@@ -3082,6 +3160,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
         const enriched = { ...mockData };
         const wd = realTimeData.wikidata;
         const wp = realTimeData.wikipedia;
+        const kbo = realTimeData.kbo;
 
         // Enrich with Wikidata (structured, verified)
         if (wd) {
@@ -3132,6 +3211,51 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
             enriched.description = wp.extract;
             enriched.descriptionSource = wp.source;
             enriched.descriptionUrl = wp.url;
+        }
+
+        // Enrich with KBO/CBE data (officiële Belgische bedrijfsdata)
+        if (kbo) {
+            enriched.kbo = kbo;
+            // KBO data is officieel en overschrijft andere bronnen
+            if (kbo.cbeNumberFormatted) {
+                enriched.btwNummer = 'BE ' + kbo.cbeNumberFormatted;
+            }
+            if (kbo.juridicalFormShort) {
+                enriched.rechtsvorm = kbo.juridicalFormShort;
+                enriched.rechtsvormFull = kbo.juridicalForm;
+            }
+            if (kbo.startDate) {
+                enriched.founded = kbo.startDate.substring(0, 4);
+                enriched.foundedSource = 'KBO/CBE';
+            }
+            if (kbo.address && kbo.address.city) {
+                enriched.headquarters = kbo.address.city;
+                enriched.headquartersSource = 'KBO/CBE';
+                enriched.kboAddress = kbo.address.full_address;
+            }
+            if (kbo.naceActivities && Array.isArray(kbo.naceActivities) && kbo.naceActivities.length > 0) {
+                const mainActivity = kbo.naceActivities.find(a => a.classification === 'main') || kbo.naceActivities[0];
+                if (mainActivity && mainActivity.description) {
+                    enriched.naceCode = mainActivity.code;
+                    enriched.naceDescription = mainActivity.description;
+                    // Gebruik NACE als sector als we geen betere bron hebben
+                    if (!enriched.sectorSource || enriched.sectorSource !== 'Wikidata') {
+                        enriched.sector = mainActivity.description;
+                        enriched.sectorSource = 'KBO/CBE';
+                    }
+                }
+            }
+            if (kbo.contactInfos) {
+                if (kbo.contactInfos.web) enriched.website = kbo.contactInfos.web;
+                if (kbo.contactInfos.email) enriched.kboEmail = kbo.contactInfos.email;
+                if (kbo.contactInfos.phone) enriched.kboPhone = kbo.contactInfos.phone;
+            }
+            if (kbo.status) {
+                enriched.kboStatus = kbo.status;
+            }
+            if (kbo.establishments) {
+                enriched.kboEstablishments = kbo.establishments;
+            }
         }
 
         enriched.realTimeSources = realTimeData.sources || [];
@@ -4359,7 +4483,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
         const [revealStep, setRevealStep] = React.useState(0);
         const [liveContext, setLiveContext] = React.useState(null);
         const [contextLoading, setContextLoading] = React.useState(true);
-        const [realTimeStatus, setRealTimeStatus] = React.useState({ wikipedia: 'loading', wikidata: 'loading' });
+        const [realTimeStatus, setRealTimeStatus] = React.useState({ wikipedia: 'loading', wikidata: 'loading', kbo: 'loading' });
         const fallbackInsights = generateInsights(companyData, lang);
 
         // Fetch REAL-TIME data from Wikipedia + Wikidata (100% verifieerbaar)
@@ -4369,7 +4493,8 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                     const rtData = await fetchRealTimeCompanyData(mockData.company, domain);
                     setRealTimeStatus({
                         wikipedia: rtData.wikipedia ? 'done' : 'none',
-                        wikidata: rtData.wikidata ? 'done' : 'none'
+                        wikidata: rtData.wikidata ? 'done' : 'none',
+                        kbo: rtData.kbo ? 'done' : 'none'
                     });
                     const enriched = enrichCompanyData(mockData, rtData);
                     setCompanyData(enriched);
@@ -4559,6 +4684,60 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                         href: companyData.descriptionUrl, target: '_blank', rel: 'noopener noreferrer',
                         style: { fontSize: 10, color: 'rgba(6,214,160,0.6)', textDecoration: 'none', marginTop: 4, display: 'inline-block' }
                     }, `Bron: ${companyData.descriptionSource || 'Wikipedia'}`)
+                )}
+
+                {/* KBO/CBE Officiële bedrijfsdata — alleen voor .be bedrijven */}
+                {companyData.kbo && React.createElement('div', {
+                    style: {
+                        marginBottom: 16, padding: '12px 16px', borderRadius: 12,
+                        background: 'rgba(96,165,250,0.03)', border: '1px solid rgba(96,165,250,0.12)',
+                        opacity: revealStep >= 1 ? 1 : 0, transition: 'opacity 0.5s ease'
+                    }
+                },
+                    React.createElement('div', {
+                        style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }
+                    },
+                        React.createElement('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: '#60A5FA', strokeWidth: 2, strokeLinecap: 'round' },
+                            React.createElement('path', { d: 'M3 21h18M3 7v1a3 3 0 0 0 6 0V7m0 1a3 3 0 0 0 6 0V7m0 1a3 3 0 0 0 6 0V7H3l2-4h14l2 4M5 21V10.87M19 21V10.87' })
+                        ),
+                        React.createElement('span', {
+                            style: { fontSize: 11, fontWeight: 600, color: 'rgba(96,165,250,0.9)', textTransform: 'uppercase', letterSpacing: '0.5px' }
+                        }, lang === 'nl' ? 'Officiële Belgische Bedrijfsdata' : 'Official Belgian Company Data')
+                    ),
+                    React.createElement('div', {
+                        style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '6px 16px' }
+                    },
+                        companyData.btwNummer && React.createElement('div', { style: { fontSize: 11 } },
+                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.35)' } }, 'BTW: '),
+                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.7)', fontFamily: 'monospace' } }, companyData.btwNummer)
+                        ),
+                        companyData.rechtsvorm && React.createElement('div', { style: { fontSize: 11 } },
+                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.35)' } }, lang === 'nl' ? 'Rechtsvorm: ' : 'Legal form: '),
+                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.7)' } }, companyData.rechtsvorm)
+                        ),
+                        companyData.kboStatus && React.createElement('div', { style: { fontSize: 11 } },
+                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.35)' } }, 'Status: '),
+                            React.createElement('span', { style: { color: companyData.kboStatus === 'active' ? '#06D6A0' : '#EF4444' } },
+                                companyData.kboStatus === 'active' ? (lang === 'nl' ? 'Actief' : 'Active') : companyData.kboStatus
+                            )
+                        ),
+                        companyData.naceCode && React.createElement('div', { style: { fontSize: 11 } },
+                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.35)' } }, 'NACE: '),
+                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.7)' } }, companyData.naceCode)
+                        ),
+                        companyData.kboAddress && React.createElement('div', { style: { fontSize: 11, gridColumn: 'span 2' } },
+                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.35)' } }, lang === 'nl' ? 'Adres: ' : 'Address: '),
+                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.7)' } }, companyData.kboAddress)
+                        ),
+                        companyData.naceDescription && React.createElement('div', { style: { fontSize: 11, gridColumn: 'span 2' } },
+                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.35)' } }, lang === 'nl' ? 'Activiteit: ' : 'Activity: '),
+                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.7)' } }, companyData.naceDescription)
+                        )
+                    ),
+                    React.createElement('a', {
+                        href: companyData.kbo.url, target: '_blank', rel: 'noopener noreferrer',
+                        style: { fontSize: 10, color: 'rgba(96,165,250,0.6)', textDecoration: 'none', marginTop: 6, display: 'inline-block' }
+                    }, 'Bron: KBO/CBE — Kruispuntbank van Ondernemingen')
                 )}
 
                 {/* LIVE AI Context — headline from Claude */}
