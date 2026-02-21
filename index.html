@@ -2758,8 +2758,23 @@ Datum: ${datePart}`
                             // Validate it's likely about a company (REQUIRED — no fallback for last query)
                             const companySignals = ['company', 'corporation', 'founded', 'headquarter', 'employees', 'business', 'bedrijf', 'opgericht', 'nv', 'bv', 'services', 'industry', 'revenue', 'ceo', 'multinational', 'information technology', 'ict', 'software', 'dienstverlen', 'technologi'];
                             const hasCompanySignal = companySignals.some(s => extractLower.includes(s));
-                            console.log(`[Wikipedia] Checking "${title}" — reject: ${hasRejectSignal}, company: ${hasCompanySignal}`);
-                            if (hasCompanySignal) {
+
+                            // Country validation: if domain has country TLD, reject articles about companies in OTHER countries
+                            const countryHints = getCountryHintsFromDomain(domain || '');
+                            let countryMismatch = false;
+                            if (countryHints && hasCompanySignal) {
+                                // Check if article mentions a DIFFERENT country prominently
+                                const otherCountrySignals = ['guinea', 'nigeria', 'kenya', 'india', 'china', 'japan', 'brazil', 'mexico', 'argentina', 'colombia', 'chile', 'peru', 'philippines', 'indonesia', 'thailand', 'vietnam', 'malaysia', 'singapore', 'australia', 'new zealand', 'south africa', 'egypt', 'israel', 'saudi', 'cameroon', 'equatorial'];
+                                const mentionsOtherCountry = otherCountrySignals.some(c => extractLower.includes(c));
+                                const mentionsOurCountry = countryHints.some(h => extractLower.includes(h));
+                                if (mentionsOtherCountry && !mentionsOurCountry) {
+                                    countryMismatch = true;
+                                    console.log(`[Wikipedia] Skipping "${title}" — country mismatch (mentions foreign country, not ${tld.toUpperCase()})`);
+                                }
+                            }
+
+                            console.log(`[Wikipedia] Checking "${title}" — reject: ${hasRejectSignal}, company: ${hasCompanySignal}, countryMismatch: ${countryMismatch}`);
+                            if (hasCompanySignal && !countryMismatch) {
                                 clearTimeout(timeout);
                                 return {
                                     title,
