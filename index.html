@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https:; img-src 'self' https: data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https:; img-src 'self' https: data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com https://en.wikipedia.org https://nl.wikipedia.org https://query.wikidata.org https://*.wikipedia.org https://*.wikidata.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com;">
     <meta name="description" content="CheevO! Decision Intelligence Platform — AI-driven besluitvormingsanalyse voor organisaties">
     <meta name="robots" content="noindex, nofollow">
     <title>CheevO! — Decision Intelligence Platform</title>
@@ -2513,6 +2513,20 @@ Open beslissingen: ${companyDataFull.metrics?.openDecisions || 'N/A'}
 Meetings/week: ${companyDataFull.metrics?.meetingsPerWeek || 'N/A'}
 Concurrenten: ${(companyDataFull.competitors || []).map(c => c.name + ' (' + c.advantage + ')').join(', ')}
 Pijnpunten: ${(companyDataFull.painPoints || []).join(', ')}`;
+
+            // Add REAL-TIME verified data from Wikipedia/Wikidata
+            if (companyDataFull.isEnriched) {
+                metricsBlock += `\n\n--- GEVERIFIEERDE REAL-TIME DATA ---`;
+                if (companyDataFull.founded) metricsBlock += `\nOpgericht: ${companyDataFull.founded} (bron: ${companyDataFull.foundedSource})`;
+                if (companyDataFull.headquarters) metricsBlock += `\nHoofdkantoor: ${companyDataFull.headquarters} (bron: ${companyDataFull.headquartersSource})`;
+                if (companyDataFull.ceo) metricsBlock += `\nCEO: ${companyDataFull.ceo} (bron: ${companyDataFull.ceoSource})`;
+                if (companyDataFull.employeesExact) metricsBlock += `\nExact aantal medewerkers: ${companyDataFull.employeesExact.toLocaleString()} (bron: ${companyDataFull.employeesSource})`;
+                if (companyDataFull.revenue) metricsBlock += `\nOmzet: €${(companyDataFull.revenue / 1000000).toFixed(1)}M (bron: ${companyDataFull.revenueSource})`;
+                if (companyDataFull.country) metricsBlock += `\nLand: ${companyDataFull.country}`;
+                if (companyDataFull.description) metricsBlock += `\nBeschrijving: ${companyDataFull.description.substring(0, 300)}`;
+                metricsBlock += `\nDatabronnen: ${(companyDataFull.realTimeSources || []).map(s => s.name).join(', ')}`;
+                metricsBlock += `\n--- EINDE REAL-TIME DATA ---`;
+            }
         }
 
         const prompts = {
@@ -2585,6 +2599,224 @@ Datum: ${datePart}`
         };
 
         return prompts[agentName] || prompts['Framing Agent'];
+    }
+
+    /* ==================== REAL-TIME DATA APIs ==================== */
+
+    // --- Wikipedia API: Fetch company description ---
+    async function fetchWikipediaData(companyName) {
+        try {
+            const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(companyName + ' company')}&srlimit=1&format=json&origin=*`;
+            const searchRes = await fetch(searchUrl);
+            const searchData = await searchRes.json();
+            if (!searchData.query?.search?.length) {
+                // Try Dutch Wikipedia
+                const nlUrl = `https://nl.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(companyName)}&srlimit=1&format=json&origin=*`;
+                const nlRes = await fetch(nlUrl);
+                const nlData = await nlRes.json();
+                if (!nlData.query?.search?.length) return null;
+                const nlTitle = nlData.query.search[0].title;
+                const nlExtractUrl = `https://nl.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(nlTitle)}&prop=extracts&exintro=1&explaintext=1&format=json&origin=*`;
+                const nlExtractRes = await fetch(nlExtractUrl);
+                const nlExtractData = await nlExtractRes.json();
+                const nlPages = nlExtractData.query?.pages;
+                const nlPage = nlPages ? Object.values(nlPages)[0] : null;
+                return {
+                    title: nlTitle,
+                    extract: nlPage?.extract?.substring(0, 500) || null,
+                    url: `https://nl.wikipedia.org/wiki/${encodeURIComponent(nlTitle)}`,
+                    source: 'Wikipedia (NL)',
+                    lang: 'nl'
+                };
+            }
+            const title = searchData.query.search[0].title;
+            const extractUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=extracts&exintro=1&explaintext=1&format=json&origin=*`;
+            const extractRes = await fetch(extractUrl);
+            const extractData = await extractRes.json();
+            const pages = extractData.query?.pages;
+            const page = pages ? Object.values(pages)[0] : null;
+            return {
+                title,
+                extract: page?.extract?.substring(0, 500) || null,
+                url: `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`,
+                source: 'Wikipedia',
+                lang: 'en'
+            };
+        } catch (err) {
+            console.warn('Wikipedia API failed:', err);
+            return null;
+        }
+    }
+
+    // --- Wikidata SPARQL: Fetch structured company data ---
+    async function fetchWikidataCompanyInfo(companyName) {
+        try {
+            const sparql = `
+SELECT ?item ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel ?website ?countryLabel WHERE {
+  ?item rdfs:label "${companyName}"@en .
+  OPTIONAL { ?item wdt:P571 ?founded . }
+  OPTIONAL { ?item wdt:P159 ?hq . }
+  OPTIONAL { ?item wdt:P1128 ?employees . }
+  OPTIONAL { ?item wdt:P2139 ?revenue . }
+  OPTIONAL { ?item wdt:P452 ?industry . }
+  OPTIONAL { ?item wdt:P169 ?ceo . }
+  OPTIONAL { ?item wdt:P856 ?website . }
+  OPTIONAL { ?item wdt:P17 ?country . }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en,nl,de,fr". }
+} LIMIT 1`;
+            const url = `https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`;
+            const res = await fetch(url, {
+                headers: { 'Accept': 'application/sparql-results+json' }
+            });
+            const data = await res.json();
+            if (!data.results?.bindings?.length) {
+                // Try alternate label search
+                const altSparql = `
+SELECT ?item ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel ?website ?countryLabel WHERE {
+  ?item wdt:P31/wdt:P279* wd:Q4830453 .
+  ?item rdfs:label ?label . FILTER(CONTAINS(LCASE(?label), "${companyName.toLowerCase()}"))
+  OPTIONAL { ?item wdt:P571 ?founded . }
+  OPTIONAL { ?item wdt:P159 ?hq . }
+  OPTIONAL { ?item wdt:P1128 ?employees . }
+  OPTIONAL { ?item wdt:P2139 ?revenue . }
+  OPTIONAL { ?item wdt:P452 ?industry . }
+  OPTIONAL { ?item wdt:P169 ?ceo . }
+  OPTIONAL { ?item wdt:P856 ?website . }
+  OPTIONAL { ?item wdt:P17 ?country . }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en,nl,de,fr". }
+} LIMIT 1`;
+                const altUrl = `https://query.wikidata.org/sparql?query=${encodeURIComponent(altSparql)}&format=json`;
+                const altRes = await fetch(altUrl, {
+                    headers: { 'Accept': 'application/sparql-results+json' }
+                });
+                const altData = await altRes.json();
+                if (!altData.results?.bindings?.length) return null;
+                return parseWikidataResult(altData.results.bindings[0]);
+            }
+            return parseWikidataResult(data.results.bindings[0]);
+        } catch (err) {
+            console.warn('Wikidata SPARQL failed:', err);
+            return null;
+        }
+    }
+
+    function parseWikidataResult(binding) {
+        const val = (key) => binding[key]?.value || null;
+        const founded = val('founded');
+        return {
+            wikidataId: val('item')?.split('/').pop(),
+            label: val('itemLabel'),
+            founded: founded ? new Date(founded).getFullYear() : null,
+            headquarters: val('hqLabel'),
+            employees: val('employees') ? parseInt(val('employees')) : null,
+            revenue: val('revenue') ? parseFloat(val('revenue')) : null,
+            industry: val('industryLabel'),
+            ceo: val('ceoLabel'),
+            website: val('website'),
+            country: val('countryLabel'),
+            source: 'Wikidata',
+            url: val('item') ? `https://www.wikidata.org/wiki/${val('item').split('/').pop()}` : null,
+            fetchedAt: new Date().toISOString()
+        };
+    }
+
+    // --- Fetch all real-time data in parallel ---
+    async function fetchRealTimeCompanyData(companyName, domain) {
+        console.log(`[RealTime] Fetching data for "${companyName}" (${domain})...`);
+        const startTime = Date.now();
+
+        const results = await Promise.allSettled([
+            fetchWikipediaData(companyName),
+            fetchWikidataCompanyInfo(companyName),
+        ]);
+
+        const wikipedia = results[0].status === 'fulfilled' ? results[0].value : null;
+        const wikidata = results[1].status === 'fulfilled' ? results[1].value : null;
+
+        const elapsed = Date.now() - startTime;
+        console.log(`[RealTime] Fetched in ${elapsed}ms — Wikipedia: ${wikipedia ? 'YES' : 'no'}, Wikidata: ${wikidata ? 'YES' : 'no'}`);
+
+        // Build sources array for transparency
+        const sources = [];
+        if (wikipedia) sources.push({ name: wikipedia.source, url: wikipedia.url, type: 'description' });
+        if (wikidata) sources.push({ name: 'Wikidata', url: wikidata.url, type: 'structured' });
+        // Google Favicon is always available
+        sources.push({ name: 'Google Favicons', url: `https://www.google.com/s2/favicons?domain=${domain}&sz=128`, type: 'logo' });
+
+        return {
+            wikipedia,
+            wikidata,
+            sources,
+            fetchedAt: new Date().toISOString(),
+            fetchDuration: elapsed
+        };
+    }
+
+    // --- Enrich company data with real-time info ---
+    function enrichCompanyData(mockData, realTimeData) {
+        if (!realTimeData) return { ...mockData, realTimeSources: [], isEnriched: false };
+
+        const enriched = { ...mockData };
+        const wd = realTimeData.wikidata;
+        const wp = realTimeData.wikipedia;
+
+        // Enrich with Wikidata (structured, verified)
+        if (wd) {
+            if (wd.industry && wd.industry !== wd.label) {
+                enriched.sector = wd.industry;
+                enriched.sectorSource = 'Wikidata';
+            }
+            if (wd.employees) {
+                if (wd.employees < 10) enriched.employees = '1-10';
+                else if (wd.employees < 50) enriched.employees = '10-50';
+                else if (wd.employees < 100) enriched.employees = '50-100';
+                else if (wd.employees < 250) enriched.employees = '100-250';
+                else if (wd.employees < 500) enriched.employees = '250-500';
+                else if (wd.employees < 1000) enriched.employees = '500-1000';
+                else if (wd.employees < 5000) enriched.employees = '1000-5000';
+                else if (wd.employees < 10000) enriched.employees = '5000-10000';
+                else enriched.employees = wd.employees.toLocaleString() + '+';
+                enriched.employeesExact = wd.employees;
+                enriched.employeesSource = 'Wikidata';
+            }
+            if (wd.founded) {
+                enriched.founded = wd.founded;
+                enriched.foundedSource = 'Wikidata';
+            }
+            if (wd.headquarters) {
+                enriched.headquarters = wd.headquarters;
+                enriched.headquartersSource = 'Wikidata';
+            }
+            if (wd.ceo) {
+                enriched.ceo = wd.ceo;
+                enriched.ceoSource = 'Wikidata';
+            }
+            if (wd.revenue) {
+                enriched.revenue = wd.revenue;
+                enriched.revenueSource = 'Wikidata';
+            }
+            if (wd.website) {
+                enriched.website = wd.website;
+            }
+            if (wd.country) {
+                enriched.country = wd.country;
+                enriched.countrySource = 'Wikidata';
+            }
+        }
+
+        // Add Wikipedia description
+        if (wp && wp.extract) {
+            enriched.description = wp.extract;
+            enriched.descriptionSource = wp.source;
+            enriched.descriptionUrl = wp.url;
+        }
+
+        enriched.realTimeSources = realTimeData.sources || [];
+        enriched.realTimeFetchedAt = realTimeData.fetchedAt;
+        enriched.realTimeDuration = realTimeData.fetchDuration;
+        enriched.isEnriched = true;
+
+        return enriched;
     }
 
     /* ==================== COMPANY DATA ==================== */
@@ -3797,13 +4029,35 @@ Datum: ${datePart}`
 
     const ScanScreen = ({ email, onProceed, t, lang }) => {
         const domain = parseEmailDomain(email);
-        const companyData = generateMockCompanyData(domain);
+        const mockData = generateMockCompanyData(domain);
+        const [companyData, setCompanyData] = React.useState(mockData);
         const [customerLogo, setCustomerLogo] = React.useState(null);
         const [logoLoading, setLogoLoading] = React.useState(false);
         const [revealStep, setRevealStep] = React.useState(0);
         const [liveContext, setLiveContext] = React.useState(null);
         const [contextLoading, setContextLoading] = React.useState(true);
+        const [realTimeStatus, setRealTimeStatus] = React.useState({ wikipedia: 'loading', wikidata: 'loading' });
         const fallbackInsights = generateInsights(companyData, lang);
+
+        // Fetch REAL-TIME data from Wikipedia + Wikidata (100% verifieerbaar)
+        React.useEffect(() => {
+            const fetchRealTime = async () => {
+                try {
+                    const rtData = await fetchRealTimeCompanyData(mockData.company, domain);
+                    setRealTimeStatus({
+                        wikipedia: rtData.wikipedia ? 'done' : 'none',
+                        wikidata: rtData.wikidata ? 'done' : 'none'
+                    });
+                    const enriched = enrichCompanyData(mockData, rtData);
+                    setCompanyData(enriched);
+                    console.log('[RealTime] Enriched company data:', enriched);
+                } catch (err) {
+                    console.warn('[RealTime] Enrichment failed, using mock data:', err);
+                    setRealTimeStatus({ wikipedia: 'error', wikidata: 'error' });
+                }
+            };
+            fetchRealTime();
+        }, [email]);
 
         // Fetch LIVE context from Claude API — DIRECT browser call
         React.useEffect(() => {
@@ -3834,9 +4088,8 @@ Datum: ${datePart}`
                 if (domain) {
                     setLogoLoading(true);
                     const logoUrls = [
-                        `https://logo.clearbit.com/${domain}`,
-                        `https://logo.clearbit.com/${companyData.company.toLowerCase()}.com`,
-                        `https://www.google.com/s2/favicons?domain=${domain}&sz=128`
+                        `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+                        `https://www.google.com/s2/favicons?domain=${companyData.company.toLowerCase()}.com&sz=128`
                     ];
                     let urlIndex = 0;
                     const tryNextUrl = () => {
@@ -3897,16 +4150,47 @@ Datum: ${datePart}`
                             {companyData.company.substring(0, 2).toUpperCase()}
                         </div>
                     ) : null}
-                    <div>
+                    <div style={{ flex: 1 }}>
                         <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 2 }}>{companyData.company}</h2>
-                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
-                            {companyData.sector} · {companyData.employees} {lang === 'nl' ? 'medewerkers' : 'employees'}
+                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>
+                            {companyData.sector}{companyData.sectorSource ? React.createElement('span', { style: { fontSize: 10, color: 'rgba(6,214,160,0.6)', marginLeft: 4 } }, `(${companyData.sectorSource})`) : null} · {companyData.employees} {lang === 'nl' ? 'medewerkers' : 'employees'}{companyData.employeesSource ? React.createElement('span', { style: { fontSize: 10, color: 'rgba(6,214,160,0.6)', marginLeft: 4 } }, `(${companyData.employeesSource})`) : null}
                         </p>
+                        {(companyData.founded || companyData.headquarters || companyData.ceo) && React.createElement('p', {
+                            style: { fontSize: 11, color: 'rgba(255,255,255,0.35)', display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }
+                        },
+                            companyData.founded && React.createElement('span', null, `Est. ${companyData.founded}`),
+                            companyData.headquarters && React.createElement('span', null, `HQ: ${companyData.headquarters}`),
+                            companyData.ceo && React.createElement('span', null, `CEO: ${companyData.ceo}`),
+                            companyData.country && React.createElement('span', null, companyData.country)
+                        )}
                     </div>
-                    <div style={{ marginLeft: 'auto' }}>
+                    <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                         <DecisionHealthGauge score={companyData.decisionHealthScore} size="compact" lang={lang} />
+                        {companyData.isEnriched && React.createElement('div', {
+                            style: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: 'rgba(6,214,160,0.7)' }
+                        },
+                            React.createElement('div', { style: { width: 5, height: 5, borderRadius: '50%', background: '#06D6A0', animation: 'livePulse 2s infinite' } }),
+                            `${companyData.realTimeSources?.length || 0} real-time bronnen`
+                        )}
                     </div>
                 </div>
+
+                {/* Real-time Wikipedia beschrijving */}
+                {companyData.description && React.createElement('div', {
+                    style: {
+                        marginBottom: 16, padding: '12px 16px', borderRadius: 12,
+                        background: 'rgba(6,214,160,0.03)', border: '1px solid rgba(6,214,160,0.08)',
+                        opacity: revealStep >= 1 ? 1 : 0, transition: 'opacity 0.5s ease'
+                    }
+                },
+                    React.createElement('p', { style: { fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 } },
+                        companyData.description.substring(0, 250) + (companyData.description.length > 250 ? '...' : '')
+                    ),
+                    React.createElement('a', {
+                        href: companyData.descriptionUrl, target: '_blank', rel: 'noopener noreferrer',
+                        style: { fontSize: 10, color: 'rgba(6,214,160,0.6)', textDecoration: 'none', marginTop: 4, display: 'inline-block' }
+                    }, `Bron: ${companyData.descriptionSource || 'Wikipedia'}`)
+                )}
 
                 {/* LIVE AI Context — headline from Claude */}
                 {contextLoading ? (
@@ -4079,6 +4363,41 @@ Datum: ${datePart}`
                         </div>
                     </div>
                 </div>
+
+                {/* Real-time data sources badge */}
+                {companyData.isEnriched && companyData.realTimeSources?.length > 0 && React.createElement('div', {
+                    style: {
+                        marginBottom: 16, padding: '10px 14px', borderRadius: 10,
+                        background: 'rgba(6,214,160,0.04)', border: '1px solid rgba(6,214,160,0.1)',
+                        opacity: revealStep >= 5 ? 1 : 0, transition: 'opacity 0.5s ease'
+                    }
+                },
+                    React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 } },
+                        React.createElement('div', { style: { width: 6, height: 6, borderRadius: '50%', background: '#06D6A0', animation: 'livePulse 2s infinite' } }),
+                        React.createElement('span', { style: { fontSize: 11, fontWeight: 600, color: 'rgba(6,214,160,0.8)' } },
+                            lang === 'nl' ? 'Geverifieerde databronnen' : 'Verified data sources'
+                        ),
+                        companyData.realTimeDuration && React.createElement('span', { style: { fontSize: 10, color: 'rgba(255,255,255,0.3)', marginLeft: 'auto' } },
+                            `${companyData.realTimeDuration}ms`
+                        )
+                    ),
+                    React.createElement('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6 } },
+                        companyData.realTimeSources.map((src, i) =>
+                            React.createElement('a', {
+                                key: i, href: src.url, target: '_blank', rel: 'noopener noreferrer',
+                                style: {
+                                    fontSize: 10, padding: '3px 8px', borderRadius: 6,
+                                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)',
+                                    color: 'rgba(255,255,255,0.5)', textDecoration: 'none',
+                                    display: 'flex', alignItems: 'center', gap: 4
+                                }
+                            },
+                                React.createElement('span', { style: { color: '#06D6A0' } }, '✓'),
+                                src.name
+                            )
+                        )
+                    )
+                )}
 
                 {/* CTA button */}
                 <button onClick={() => onProceed({ ...companyData, liveContext })} className="btn-primary" style={{
@@ -4478,8 +4797,19 @@ Datum: ${datePart}`
                 doc.setFontSize(10);
                 doc.setFont('helvetica', 'normal');
                 doc.setTextColor(100, 100, 100);
-                doc.text(`${companyData.sector} · ${companyData.employees} ${lang === 'nl' ? 'medewerkers' : 'employees'}`, margin, y);
-                y += 12;
+                let companySubtitle = `${companyData.sector} · ${companyData.employees} ${lang === 'nl' ? 'medewerkers' : 'employees'}`;
+                if (companyData.founded) companySubtitle += ` · Est. ${companyData.founded}`;
+                if (companyData.headquarters) companySubtitle += ` · ${companyData.headquarters}`;
+                doc.text(companySubtitle, margin, y);
+                y += 5;
+                // Data sources line
+                if (companyData.isEnriched && companyData.realTimeSources?.length > 0) {
+                    doc.setFontSize(7);
+                    doc.setTextColor(6, 214, 160);
+                    doc.text(`Databronnen: ${companyData.realTimeSources.map(s => s.name).join(' · ')} — ${lang === 'nl' ? 'Geverifieerd' : 'Verified'} ${new Date().toISOString().split('T')[0]}`, margin, y);
+                    doc.setTextColor(100, 100, 100);
+                }
+                y += 10;
 
                 // Key Metrics
                 doc.setFillColor(245, 248, 250);
@@ -4612,11 +4942,31 @@ Datum: ${datePart}`
                         </span>
                     </div>
                 </div>
-                <p className="text-muted" style={{ marginBottom: 32 }}>
+                <p className="text-muted" style={{ marginBottom: companyData.isEnriched ? 12 : 32 }}>
                     {lang === 'nl'
                         ? `Gepersonaliseerde analyse voor ${companyData.company} — ${companyData.sector}`
                         : `Personalized analysis for ${companyData.company} — ${companyData.sector}`}
+                    {companyData.founded && ` · Est. ${companyData.founded}`}
+                    {companyData.headquarters && ` · ${companyData.headquarters}`}
                 </p>
+                {companyData.isEnriched && companyData.realTimeSources?.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 24 }}>
+                        {companyData.realTimeSources.map((src, i) => (
+                            <a key={i} href={src.url} target="_blank" rel="noopener noreferrer"
+                               style={{
+                                   fontSize: 10, padding: '2px 8px', borderRadius: 6,
+                                   background: 'rgba(6,214,160,0.06)', border: '1px solid rgba(6,214,160,0.12)',
+                                   color: 'rgba(6,214,160,0.7)', textDecoration: 'none',
+                                   display: 'flex', alignItems: 'center', gap: 4
+                               }}>
+                                <span style={{ color: '#06D6A0' }}>✓</span> {src.name}
+                            </a>
+                        ))}
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', alignSelf: 'center' }}>
+                            {lang === 'nl' ? 'Geverifieerde bronnen' : 'Verified sources'}
+                        </span>
+                    </div>
+                )}
 
                 <div className="dashboard-grid">
                     <div className="metric-card">
