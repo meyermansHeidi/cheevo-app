@@ -2747,17 +2747,21 @@ Datum: ${datePart}`
                                 continue;
                             }
 
-                            // Reject if it's clearly NOT about a company
-                            const rejectSignals = ['metalband', 'metal band', 'muziekgroep', 'rock band', 'vocalist', 'bassist', 'guitarist', 'drummer', 'album', 'discografie', 'single', 'mythology', 'mytholog', 'titan', 'god ', 'goddess', 'genus', 'species', 'asteroid', 'crater', 'planet', 'fictional character', 'film', 'movie', 'directed by', 'regisseur', 'horror', 'drama', 'comedy', 'television series', 'tv series', 'novel by', 'book by', 'poem', 'video game', 'starring', 'screenplay', 'actor', 'actress', 'cannabis', 'marijuana'];
-                            const hasRejectSignal = rejectSignals.some(s => extractLower.includes(s));
-                            if (hasRejectSignal) {
-                                console.log(`[Wikipedia] Skipping "${title}" — reject signal found in extract`);
-                                continue;
-                            }
-
-                            // Validate it's likely about a company (REQUIRED — no fallback for last query)
+                            // Check for company signals FIRST
                             const companySignals = ['company', 'corporation', 'founded', 'headquarter', 'employees', 'business', 'bedrijf', 'opgericht', 'nv', 'bv', 'services', 'industry', 'revenue', 'ceo', 'multinational', 'information technology', 'ict', 'software', 'dienstverlen', 'technologi'];
                             const hasCompanySignal = companySignals.some(s => extractLower.includes(s));
+
+                            // Reject signals — only block articles that are NOT about companies
+                            // (A company like Apple Inc. may mention "film", "drama" etc. because of Apple TV+)
+                            const rejectSignals = ['metalband', 'metal band', 'muziekgroep', 'rock band', 'vocalist', 'bassist', 'guitarist', 'drummer', 'album', 'discografie', 'mythology', 'mytholog', 'titan', 'god ', 'goddess', 'genus', 'species', 'asteroid', 'crater', 'planet', 'fictional character', 'cannabis', 'marijuana'];
+                            // Strong reject signals — these ALWAYS reject even if company signals present
+                            const strongRejectSignals = ['is a film', 'is een film', 'is a song', 'is een lied', 'is a band', 'is een band', 'is a genus', 'is een geslacht'];
+                            const hasRejectSignal = rejectSignals.some(s => extractLower.includes(s));
+                            const hasStrongReject = strongRejectSignals.some(s => extractLower.includes(s));
+                            if (hasStrongReject || (hasRejectSignal && !hasCompanySignal)) {
+                                console.log(`[Wikipedia] Skipping "${title}" — reject signal found (strong: ${hasStrongReject}, company: ${hasCompanySignal})`);
+                                continue;
+                            }
 
                             // Country validation: if domain has country TLD, reject articles about companies in OTHER countries
                             const countryHints = getCountryHintsFromDomain(domain || '');
