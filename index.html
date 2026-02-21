@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https:; img-src 'self' https: data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com https://en.wikipedia.org https://nl.wikipedia.org https://query.wikidata.org https://*.wikipedia.org https://*.wikidata.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https:; img-src 'self' https: data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com https://en.wikipedia.org https://nl.wikipedia.org https://www.wikidata.org https://query.wikidata.org https://*.wikipedia.org https://*.wikidata.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com;">
     <meta name="description" content="CheevO! Decision Intelligence Platform — AI-driven besluitvormingsanalyse voor organisaties">
     <meta name="robots" content="noindex, nofollow">
     <title>CheevO! — Decision Intelligence Platform</title>
@@ -2605,55 +2605,104 @@ Datum: ${datePart}`
 
     // --- Wikipedia API: Fetch company description ---
     async function fetchWikipediaData(companyName) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
         try {
-            const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(companyName + ' company')}&srlimit=1&format=json&origin=*`;
-            const searchRes = await fetch(searchUrl);
-            const searchData = await searchRes.json();
-            if (!searchData.query?.search?.length) {
-                // Try Dutch Wikipedia
-                const nlUrl = `https://nl.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(companyName)}&srlimit=1&format=json&origin=*`;
-                const nlRes = await fetch(nlUrl);
-                const nlData = await nlRes.json();
-                if (!nlData.query?.search?.length) return null;
+            // Try multiple search variants
+            const searchVariants = [
+                companyName,
+                companyName + ' company',
+                companyName + ' software'
+            ];
+            for (const query of searchVariants) {
+                const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=1&format=json&origin=*`;
+                const searchRes = await fetch(searchUrl, { signal: controller.signal });
+                const searchData = await searchRes.json();
+                if (searchData.query?.search?.length) {
+                    const title = searchData.query.search[0].title;
+                    const extractUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=extracts&exintro=1&explaintext=1&format=json&origin=*`;
+                    const extractRes = await fetch(extractUrl, { signal: controller.signal });
+                    const extractData = await extractRes.json();
+                    const pages = extractData.query?.pages;
+                    const page = pages ? Object.values(pages)[0] : null;
+                    if (page?.extract && page.extract.length > 50) {
+                        clearTimeout(timeout);
+                        return {
+                            title,
+                            extract: page.extract.substring(0, 500),
+                            url: `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`,
+                            source: 'Wikipedia',
+                            lang: 'en'
+                        };
+                    }
+                }
+            }
+            // Fallback: Try Dutch Wikipedia
+            const nlUrl = `https://nl.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(companyName)}&srlimit=1&format=json&origin=*`;
+            const nlRes = await fetch(nlUrl, { signal: controller.signal });
+            const nlData = await nlRes.json();
+            if (nlData.query?.search?.length) {
                 const nlTitle = nlData.query.search[0].title;
                 const nlExtractUrl = `https://nl.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(nlTitle)}&prop=extracts&exintro=1&explaintext=1&format=json&origin=*`;
-                const nlExtractRes = await fetch(nlExtractUrl);
+                const nlExtractRes = await fetch(nlExtractUrl, { signal: controller.signal });
                 const nlExtractData = await nlExtractRes.json();
                 const nlPages = nlExtractData.query?.pages;
                 const nlPage = nlPages ? Object.values(nlPages)[0] : null;
-                return {
-                    title: nlTitle,
-                    extract: nlPage?.extract?.substring(0, 500) || null,
-                    url: `https://nl.wikipedia.org/wiki/${encodeURIComponent(nlTitle)}`,
-                    source: 'Wikipedia (NL)',
-                    lang: 'nl'
-                };
+                if (nlPage?.extract && nlPage.extract.length > 50) {
+                    clearTimeout(timeout);
+                    return {
+                        title: nlTitle,
+                        extract: nlPage.extract.substring(0, 500),
+                        url: `https://nl.wikipedia.org/wiki/${encodeURIComponent(nlTitle)}`,
+                        source: 'Wikipedia (NL)',
+                        lang: 'nl'
+                    };
+                }
             }
-            const title = searchData.query.search[0].title;
-            const extractUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=extracts&exintro=1&explaintext=1&format=json&origin=*`;
-            const extractRes = await fetch(extractUrl);
-            const extractData = await extractRes.json();
-            const pages = extractData.query?.pages;
-            const page = pages ? Object.values(pages)[0] : null;
-            return {
-                title,
-                extract: page?.extract?.substring(0, 500) || null,
-                url: `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`,
-                source: 'Wikipedia',
-                lang: 'en'
-            };
+            clearTimeout(timeout);
+            return null;
         } catch (err) {
-            console.warn('Wikipedia API failed:', err);
+            clearTimeout(timeout);
+            if (err.name === 'AbortError') console.log('[Wikipedia] Timeout after 5s');
+            else console.warn('[Wikipedia] API failed:', err.message);
             return null;
         }
     }
 
-    // --- Wikidata SPARQL: Fetch structured company data ---
+    // --- Wikidata: Fetch structured company data ---
     async function fetchWikidataCompanyInfo(companyName) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
         try {
+            // Step 1: Use Wikidata search API to find entity ID (fast, no SPARQL)
+            const searchUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(companyName)}&language=en&limit=5&format=json&origin=*`;
+            const searchRes = await fetch(searchUrl, { signal: controller.signal });
+            const searchData = await searchRes.json();
+
+            if (!searchData.search?.length) {
+                clearTimeout(timeout);
+                console.log(`[Wikidata] No entity found for "${companyName}"`);
+                return null;
+            }
+
+            // Find best match (prefer items with "company", "corporation", "enterprise" in description)
+            const companyKeywords = ['company', 'corporation', 'enterprise', 'software', 'firm', 'bedrijf', 'onderneming', 'platform', 'technology'];
+            let bestMatch = searchData.search[0]; // default: first result
+            for (const item of searchData.search) {
+                const desc = (item.description || '').toLowerCase();
+                if (companyKeywords.some(kw => desc.includes(kw))) {
+                    bestMatch = item;
+                    break;
+                }
+            }
+
+            const entityId = bestMatch.id;
+            console.log(`[Wikidata] Found entity: ${entityId} — "${bestMatch.label}" (${bestMatch.description || 'no desc'})`);
+
+            // Step 2: SPARQL with known entity ID (fast, no text search)
             const sparql = `
-SELECT ?item ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel ?website ?countryLabel WHERE {
-  ?item rdfs:label "${companyName}"@en .
+SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel ?website ?countryLabel WHERE {
+  BIND(wd:${entityId} AS ?item)
   OPTIONAL { ?item wdt:P571 ?founded . }
   OPTIONAL { ?item wdt:P159 ?hq . }
   OPTIONAL { ?item wdt:P1128 ?employees . }
@@ -2664,38 +2713,24 @@ SELECT ?item ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ce
   OPTIONAL { ?item wdt:P17 ?country . }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en,nl,de,fr". }
 } LIMIT 1`;
-            const url = `https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`;
-            const res = await fetch(url, {
+            const sparqlUrl = `https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`;
+            const sparqlRes = await fetch(sparqlUrl, {
+                signal: controller.signal,
                 headers: { 'Accept': 'application/sparql-results+json' }
             });
-            const data = await res.json();
-            if (!data.results?.bindings?.length) {
-                // Try alternate label search
-                const altSparql = `
-SELECT ?item ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel ?website ?countryLabel WHERE {
-  ?item wdt:P31/wdt:P279* wd:Q4830453 .
-  ?item rdfs:label ?label . FILTER(CONTAINS(LCASE(?label), "${companyName.toLowerCase()}"))
-  OPTIONAL { ?item wdt:P571 ?founded . }
-  OPTIONAL { ?item wdt:P159 ?hq . }
-  OPTIONAL { ?item wdt:P1128 ?employees . }
-  OPTIONAL { ?item wdt:P2139 ?revenue . }
-  OPTIONAL { ?item wdt:P452 ?industry . }
-  OPTIONAL { ?item wdt:P169 ?ceo . }
-  OPTIONAL { ?item wdt:P856 ?website . }
-  OPTIONAL { ?item wdt:P17 ?country . }
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "en,nl,de,fr". }
-} LIMIT 1`;
-                const altUrl = `https://query.wikidata.org/sparql?query=${encodeURIComponent(altSparql)}&format=json`;
-                const altRes = await fetch(altUrl, {
-                    headers: { 'Accept': 'application/sparql-results+json' }
-                });
-                const altData = await altRes.json();
-                if (!altData.results?.bindings?.length) return null;
-                return parseWikidataResult(altData.results.bindings[0]);
-            }
-            return parseWikidataResult(data.results.bindings[0]);
+            const sparqlData = await sparqlRes.json();
+            clearTimeout(timeout);
+
+            if (!sparqlData.results?.bindings?.length) return null;
+
+            const result = parseWikidataResult(sparqlData.results.bindings[0]);
+            result.wikidataId = entityId;
+            result.url = `https://www.wikidata.org/wiki/${entityId}`;
+            return result;
         } catch (err) {
-            console.warn('Wikidata SPARQL failed:', err);
+            clearTimeout(timeout);
+            if (err.name === 'AbortError') console.log('[Wikidata] Timeout after 8s');
+            else console.warn('[Wikidata] Failed:', err.message);
             return null;
         }
     }
