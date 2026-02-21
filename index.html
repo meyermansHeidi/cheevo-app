@@ -1199,7 +1199,7 @@
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: rgba(255,255,255,0.4);
+            color: rgba(255,255,255,0.6);
             font-weight: 600;
         }
 
@@ -1370,6 +1370,11 @@
             }
         }
 
+        /* ==================== MOBILE (≤600px) — insight grid stacking ==================== */
+        @media (max-width: 600px) {
+            .insight-grid { grid-template-columns: 1fr !important; }
+        }
+
         /* ==================== MOBILE SMALL (≤480px) ==================== */
         @media (max-width: 480px) {
             .hero-title { font-size: 28px; }
@@ -1380,6 +1385,10 @@
             .stepper-circle { width: 28px; height: 28px; font-size: 12px; }
             body.with-stepper { padding-top: 130px; }
             .agent-orb { width: 60px; height: 60px; }
+            .insight-card { padding: 12px; }
+            .insight-metric { font-size: 24px; }
+            .insight-text { font-size: 12px; }
+            .scan-section-title { font-size: 14px; }
         }
 
         @media (max-width: 360px) {
@@ -3706,8 +3715,8 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                         </p>
                         {this.state.error && (
                             <details style={{ marginBottom: 20, textAlign: 'left', maxWidth: 500, margin: '0 auto 20px' }}>
-                                <summary style={{ cursor: 'pointer', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Technische details</summary>
-                                <pre style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 8, overflow: 'auto', maxHeight: 100, padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                                <summary style={{ cursor: 'pointer', fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>Technische details</summary>
+                                <pre style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 8, overflow: 'auto', maxHeight: 100, padding: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
                                     {this.state.error.toString()}
                                 </pre>
                             </details>
@@ -4112,7 +4121,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                         className="splash-logo"
                     />
                     <p className="splash-tagline">{lang === 'nl' ? 'Beslissingsintelligentie Platform' : 'Decision Intelligence Platform'}</p>
-                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 20, animation: 'fadeIn 0.5s ease 0.5s forwards', opacity: 0 }}>
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 20, animation: 'fadeIn 0.5s ease 0.5s forwards', opacity: 0 }}>
                         {lang === 'nl' ? 'Klik om verder te gaan' : 'Click to continue'}
                     </p>
                 </div>
@@ -4254,7 +4263,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                     }}>
                         {lang === 'nl' ? 'Laten we beginnen! 🚀' : 'Let\'s get started! 🚀'}
                     </button>
-                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 12, textAlign: 'center' }}>
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 12, textAlign: 'center' }}>
                         {lang === 'nl' ? 'Duurt maar 2 minuten' : 'Takes only 2 minutes'}
                     </p>
                 </div>
@@ -4383,13 +4392,13 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                             { icon: '⚡', text: lang === 'nl' ? 'Real-time AI' : 'Real-time AI' },
                             { icon: '🎯', text: lang === 'nl' ? 'Gepersonaliseerd' : 'Personalized' }
                         ].map((trust, i) => (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
                                 <span>{trust.icon}</span>
                                 <span>{trust.text}</span>
                             </div>
                         ))}
                     </div>
-                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 8 }}>
+                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 8 }}>
                         {lang === 'nl'
                             ? 'Uw gegevens worden niet opgeslagen. Analyse is real-time en anoniem.'
                             : 'Your data is not stored. Analysis is real-time and anonymous.'}
@@ -4606,7 +4615,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                             style: { fontSize: 10, color: 'rgba(6,214,160,0.7)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }
                         }, 'LIVE'),
                         React.createElement('span', {
-                            style: { fontSize: 10, color: 'rgba(255,255,255,0.3)' }
+                            style: { fontSize: 10, color: 'rgba(255,255,255,0.5)' }
                         }, `${isNl ? 'Geanalyseerd' : 'Analyzed'} ${liveContext.scraped_at}`)
                     )
                 )
@@ -4631,7 +4640,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                             style: { fontSize: 11, color: 'rgba(239,68,68,0.8)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }
                         }, isNl ? 'Besluitvormingskosten sinds scan' : 'Decision cost since scan'),
                         React.createElement('div', {
-                            style: { fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 2 }
+                            style: { fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2 }
                         }, isNl ? `${elapsedSec}s verstreken — elke seconde telt` : `${elapsedSec}s elapsed — every second counts`)
                     )
                 ),
@@ -4649,7 +4658,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                 style: { marginTop: 16, marginBottom: 16 }
             },
                 React.createElement('div', {
-                    style: { fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 8, fontWeight: 500 }
+                    style: { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 8, fontWeight: 500 }
                 }, isNl ? `Wat vandaag speelt bij ${companyData.company}:` : `What's happening at ${companyData.company} today:`),
                 React.createElement('div', {
                     style: { display: 'flex', flexWrap: 'wrap', gap: 6 }
@@ -4695,7 +4704,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                         React.createElement('div', { style: { fontSize: 12, color: 'rgba(96,165,250,0.9)', lineHeight: 1.4 } },
                             src.title ? (src.title.length > 80 ? src.title.substring(0, 80) + '...' : src.title) : src.url
                         ),
-                        React.createElement('div', { style: { fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 2 } },
+                        React.createElement('div', { style: { fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2 } },
                             src.source || 'AI-analyse'
                         )
                     )
@@ -4832,7 +4841,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                             style: { fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.9)' }
                         }, userProfile.name),
                         React.createElement('div', {
-                            style: { fontSize: 11, color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', gap: 6 }
+                            style: { fontSize: 11, color: 'rgba(255,255,255,0.55)', display: 'flex', alignItems: 'center', gap: 6 }
                         },
                             React.createElement('span', null, email),
                             userProfile.source === 'Gravatar' && React.createElement('span', {
@@ -4880,7 +4889,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                             {companyData.sector}{companyData.sectorSource ? React.createElement('span', { style: { fontSize: 10, color: 'rgba(6,214,160,0.6)', marginLeft: 4 } }, `(${companyData.sectorSource})`) : null} · {companyData.employees} {lang === 'nl' ? 'medewerkers' : 'employees'}{companyData.employeesSource ? React.createElement('span', { style: { fontSize: 10, color: 'rgba(6,214,160,0.6)', marginLeft: 4 } }, `(${companyData.employeesSource})`) : null}
                         </p>
                         {(companyData.founded || companyData.headquarters || companyData.ceo) && React.createElement('p', {
-                            style: { fontSize: 11, color: 'rgba(255,255,255,0.35)', display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }
+                            style: { fontSize: 11, color: 'rgba(255,255,255,0.55)', display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }
                         },
                             companyData.founded && React.createElement('span', null, `Est. ${companyData.founded}`),
                             companyData.headquarters && React.createElement('span', null, `HQ: ${companyData.headquarters}`),
@@ -4938,29 +4947,29 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                         style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '6px 16px' }
                     },
                         companyData.btwNummer && React.createElement('div', { style: { fontSize: 11 } },
-                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.35)' } }, 'BTW: '),
+                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.55)' } }, 'BTW: '),
                             React.createElement('span', { style: { color: 'rgba(255,255,255,0.7)', fontFamily: 'monospace' } }, companyData.btwNummer)
                         ),
                         companyData.rechtsvorm && React.createElement('div', { style: { fontSize: 11 } },
-                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.35)' } }, lang === 'nl' ? 'Rechtsvorm: ' : 'Legal form: '),
+                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.55)' } }, lang === 'nl' ? 'Rechtsvorm: ' : 'Legal form: '),
                             React.createElement('span', { style: { color: 'rgba(255,255,255,0.7)' } }, companyData.rechtsvorm)
                         ),
                         companyData.kboStatus && React.createElement('div', { style: { fontSize: 11 } },
-                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.35)' } }, 'Status: '),
+                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.55)' } }, 'Status: '),
                             React.createElement('span', { style: { color: companyData.kboStatus === 'active' ? '#06D6A0' : '#EF4444' } },
                                 companyData.kboStatus === 'active' ? (lang === 'nl' ? 'Actief' : 'Active') : companyData.kboStatus
                             )
                         ),
                         companyData.naceCode && React.createElement('div', { style: { fontSize: 11 } },
-                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.35)' } }, 'NACE: '),
+                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.55)' } }, 'NACE: '),
                             React.createElement('span', { style: { color: 'rgba(255,255,255,0.7)' } }, companyData.naceCode)
                         ),
                         companyData.kboAddress && React.createElement('div', { style: { fontSize: 11, gridColumn: 'span 2' } },
-                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.35)' } }, lang === 'nl' ? 'Adres: ' : 'Address: '),
+                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.55)' } }, lang === 'nl' ? 'Adres: ' : 'Address: '),
                             React.createElement('span', { style: { color: 'rgba(255,255,255,0.7)' } }, companyData.kboAddress)
                         ),
                         companyData.naceDescription && React.createElement('div', { style: { fontSize: 11, gridColumn: 'span 2' } },
-                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.35)' } }, lang === 'nl' ? 'Activiteit: ' : 'Activity: '),
+                            React.createElement('span', { style: { color: 'rgba(255,255,255,0.55)' } }, lang === 'nl' ? 'Activiteit: ' : 'Activity: '),
                             React.createElement('span', { style: { color: 'rgba(255,255,255,0.7)' } }, companyData.naceDescription)
                         )
                     ),
@@ -5024,11 +5033,11 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                     {lang === 'nl' ? 'Wat dit betekent voor uw organisatie' : 'What this means for your organization'}
                 </div>
                 {companyData.metricsSource && React.createElement('p', {
-                    style: { fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: -8, marginBottom: 12, fontStyle: 'italic',
+                    style: { fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: -8, marginBottom: 12, fontStyle: 'italic',
                         opacity: revealStep >= 2 ? 1 : 0, transition: 'opacity 0.5s ease' }
                 }, companyData.metricsSource)}
 
-                <div style={{
+                <div className="insight-grid" style={{
                     display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24
                 }}>
                     {/* Decision Time Insight — enhanced with live context */}
@@ -5159,7 +5168,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                         React.createElement('span', { style: { fontSize: 11, fontWeight: 600, color: 'rgba(6,214,160,0.8)' } },
                             lang === 'nl' ? 'Geverifieerde databronnen' : 'Verified data sources'
                         ),
-                        companyData.realTimeDuration && React.createElement('span', { style: { fontSize: 10, color: 'rgba(255,255,255,0.3)', marginLeft: 'auto' } },
+                        companyData.realTimeDuration && React.createElement('span', { style: { fontSize: 10, color: 'rgba(255,255,255,0.5)', marginLeft: 'auto' } },
                             `${companyData.realTimeDuration}ms`
                         )
                     ),
@@ -5419,7 +5428,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                                 <div style={{ flex: 1 }}>
                                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                                         <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{agent.nickname || agent.name}</h3>
-                                        {agent.tagline && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>{agent.tagline}</span>}
+                                        {agent.tagline && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>{agent.tagline}</span>}
                                     </div>
                                     <div className={`agent-status-badge status-${agent.status}`} aria-live="polite">
                                         {agent.status === 'waiting' && (lang === 'nl' ? 'Wacht...' : 'Waiting...')}
@@ -5744,7 +5753,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                                 <span style={{ color: '#06D6A0' }}>✓</span> {src.name}
                             </a>
                         ))}
-                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', alignSelf: 'center' }}>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', alignSelf: 'center' }}>
                             {lang === 'nl' ? 'Geverifieerde bronnen' : 'Verified sources'}
                         </span>
                     </div>
