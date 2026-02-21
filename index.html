@@ -2747,8 +2747,16 @@ Datum: ${datePart}`
                                 continue;
                             }
 
-                            // Validate it's likely about a company (not mythology, fruit, etc.)
-                            const companySignals = ['company', 'corporation', 'founded', 'headquarter', 'employees', 'business', 'group', 'groep', 'bedrijf', 'opgericht', 'nv', 'bv', 'services', 'industry', 'revenue', 'ceo', 'multinational', 'information technology', 'ict', 'software'];
+                            // Reject if it's clearly NOT about a company
+                            const rejectSignals = ['metalband', 'metal band', 'muziekgroep', 'rock band', 'vocalist', 'bassist', 'guitarist', 'drummer', 'album', 'discografie', 'single', 'mythology', 'mytholog', 'titan', 'god ', 'goddess', 'genus', 'species', 'asteroid', 'crater', 'planet', 'fictional character'];
+                            const hasRejectSignal = rejectSignals.some(s => extractLower.includes(s));
+                            if (hasRejectSignal) {
+                                console.log(`[Wikipedia] Skipping "${title}" — contains reject signal (music/mythology/etc.)`);
+                                continue;
+                            }
+
+                            // Validate it's likely about a company
+                            const companySignals = ['company', 'corporation', 'founded', 'headquarter', 'employees', 'business', 'bedrijf', 'opgericht', 'nv', 'bv', 'services', 'industry', 'revenue', 'ceo', 'multinational', 'information technology', 'ict', 'software', 'dienstverlen', 'technologi'];
                             const hasCompanySignal = companySignals.some(s => extractLower.includes(s));
                             if (hasCompanySignal) {
                                 clearTimeout(timeout);
@@ -2936,6 +2944,16 @@ Datum: ${datePart}`
                     bestScore = score;
                     bestMatch = item;
                 }
+            }
+
+            // QUALITY GATE: minimum score threshold to avoid returning wrong data
+            // If domain has country TLD (e.g. .be) but best match doesn't mention that country,
+            // require a higher score to proceed
+            const minScore = countryHints ? 5 : 2; // Higher threshold when we expect a specific country
+            if (bestScore < minScore) {
+                clearTimeout(timeout);
+                console.log(`[Wikidata] Best match score ${bestScore} below threshold ${minScore} — returning null to avoid wrong data`);
+                return null;
             }
 
             const entityId = bestMatch.id;
