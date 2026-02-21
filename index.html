@@ -235,6 +235,42 @@
             100% { background-position: 200px 0; }
         }
 
+        /* Skeleton loading */
+        .skeleton-line {
+            height: 14px;
+            border-radius: 6px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+            background-size: 400px 100%;
+            animation: shimmer 1.5s ease-in-out infinite;
+            margin-bottom: 8px;
+        }
+        .skeleton-line.short { width: 60%; }
+        .skeleton-line.medium { width: 80%; }
+        .skeleton-circle {
+            width: 56px; height: 56px; border-radius: 50%;
+            background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+            background-size: 400px 100%;
+            animation: shimmer 1.5s ease-in-out infinite;
+        }
+        .skeleton-card {
+            border-radius: 16px; padding: 20px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.02) 25%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.02) 75%);
+            background-size: 400px 100%;
+            animation: shimmer 1.5s ease-in-out infinite;
+            border: 1px solid rgba(255,255,255,0.04);
+        }
+
+        /* Smooth scroll */
+        html { scroll-behavior: smooth; }
+
+        /* Touch targets */
+        @media (pointer: coarse) {
+            .btn-primary, button, a[href], input, select, textarea {
+                min-height: 44px;
+            }
+            .input-field { min-height: 48px; font-size: 16px !important; }
+        }
+
         @keyframes countUp {
             from {
                 opacity: 0;
@@ -4271,18 +4307,18 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
         // Animation phases — agents appear 1-by-1, then text, then CTA
         useEffect(() => {
             const timers = [
-                setTimeout(() => setVisibleAgents(1), 200),
-                setTimeout(() => setVisibleAgents(2), 500),
-                setTimeout(() => setVisibleAgents(3), 800),
-                setTimeout(() => setVisibleAgents(4), 1100),
-                setTimeout(() => setVisibleAgents(5), 1400),
-                setTimeout(() => { setPhase(1); setActiveChat(0); }, 1700),
-                setTimeout(() => setActiveChat(1), 2100),
-                setTimeout(() => setActiveChat(2), 2500),
-                setTimeout(() => setActiveChat(3), 2900),
-                setTimeout(() => setActiveChat(4), 3300),
-                setTimeout(() => setPhase(2), 3500),   // Show main text
-                setTimeout(() => setPhase(3), 3900),   // Show CTA
+                setTimeout(() => setVisibleAgents(1), 100),
+                setTimeout(() => setVisibleAgents(2), 250),
+                setTimeout(() => setVisibleAgents(3), 400),
+                setTimeout(() => setVisibleAgents(4), 550),
+                setTimeout(() => setVisibleAgents(5), 700),
+                setTimeout(() => { setPhase(1); setActiveChat(0); }, 850),
+                setTimeout(() => setActiveChat(1), 1050),
+                setTimeout(() => setActiveChat(2), 1250),
+                setTimeout(() => setActiveChat(3), 1450),
+                setTimeout(() => setActiveChat(4), 1650),
+                setTimeout(() => setPhase(2), 1800),   // Show main text
+                setTimeout(() => setPhase(3), 2000),   // Show CTA
             ];
             return () => timers.forEach(clearTimeout);
         }, []);
@@ -4388,6 +4424,26 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
         const [error, setError] = useState('');
         const [emailInvalid, setEmailInvalid] = useState(false);
         const [isSubmitting, setIsSubmitting] = useState(false);
+        const [emailTouched, setEmailTouched] = useState(false);
+        const [emailHint, setEmailHint] = useState('');
+
+        const freeProviders = ['gmail.com', 'hotmail.com', 'yahoo.com', 'outlook.com', 'live.com', 'icloud.com', 'mail.com', 'aol.com', 'gmx.com', 'protonmail.com'];
+
+        const handleEmailChange = (val) => {
+            setEmail(val);
+            setError('');
+            setEmailInvalid(false);
+            if (emailTouched && val.includes('@')) {
+                const domain = val.split('@')[1]?.toLowerCase();
+                if (domain && freeProviders.includes(domain)) {
+                    setEmailHint(lang === 'nl' ? 'Tip: gebruik uw zakelijk e-mailadres voor gepersonaliseerde resultaten' : 'Tip: use your business email for personalized results');
+                } else {
+                    setEmailHint('');
+                }
+            } else {
+                setEmailHint('');
+            }
+        };
 
         const handleProceed = () => {
             if (isSubmitting) return;
@@ -4467,18 +4523,27 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                             type="email"
                             placeholder={t(lang).enterEmail}
                             value={email}
-                            onChange={(e) => {
-                                setEmail(e.target.value);
-                                setError('');
-                                setEmailInvalid(false);
-                            }}
+                            onChange={(e) => handleEmailChange(e.target.value)}
+                            onBlur={() => setEmailTouched(true)}
                             onKeyPress={(e) => e.key === 'Enter' && handleProceed()}
                             className="input-field"
                             aria-invalid={emailInvalid}
                             aria-label={lang === 'nl' ? 'Email adres invoeren' : 'Enter your email address'}
-                            style={{ fontSize: 14 }}
+                            style={{
+                                fontSize: 14,
+                                borderColor: emailInvalid ? '#EF4444' : emailTouched && email && validateEmail(email) ? 'rgba(6,214,160,0.4)' : undefined,
+                                transition: 'border-color 0.2s ease'
+                            }}
                         />
-                        {error && <div style={{ color: '#EF4444', fontSize: 12 }}>{error}</div>}
+                        {error && <div style={{ color: '#EF4444', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span>⚠</span> {error}
+                        </div>}
+                        {emailHint && !error && <div style={{ color: '#FBBF24', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, opacity: 0.8 }}>
+                            <span>💡</span> {emailHint}
+                        </div>}
+                        {emailTouched && email && validateEmail(email) && !emailHint && !error && <div style={{ color: '#06D6A0', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4, opacity: 0.7 }}>
+                            <span>✓</span> {lang === 'nl' ? 'Geldig e-mailadres' : 'Valid email address'}
+                        </div>}
                         <button onClick={handleProceed} className={`btn-primary ${isSubmitting ? 'loading' : ''}`} disabled={isSubmitting} style={{ width: '100%' }}>
                             {isSubmitting ? (lang === 'nl' ? 'Agents worden geactiveerd...' : 'Activating agents...') : t(lang).analyzeBtn}
                         </button>
@@ -4972,10 +5037,29 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                     )
                 )}
 
+                {/* Skeleton loading state */}
+                {revealStep === 0 && (
+                    <div style={{ marginBottom: 24 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+                            <div className="skeleton-circle" />
+                            <div style={{ flex: 1 }}>
+                                <div className="skeleton-line" style={{ width: '40%', height: 20, marginBottom: 8 }} />
+                                <div className="skeleton-line short" style={{ height: 12 }} />
+                            </div>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+                            <div className="skeleton-card" style={{ height: 80 }} />
+                            <div className="skeleton-card" style={{ height: 80 }} />
+                            <div className="skeleton-card" style={{ height: 80 }} />
+                        </div>
+                    </div>
+                )}
+
                 {/* Company header - compact */}
                 <div style={{
                     display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24,
-                    opacity: revealStep >= 0 ? 1 : 0, transition: 'opacity 0.5s ease'
+                    opacity: revealStep >= 1 ? 1 : 0, transform: revealStep >= 1 ? 'translateY(0)' : 'translateY(10px)',
+                    transition: 'opacity 0.4s ease, transform 0.4s ease'
                 }}>
                     {customerLogo ? (
                         <div style={{
@@ -5785,7 +5869,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
         );
     };
 
-    const CommandCenterScreen = ({ companyData, agentResults, onNewDecision, t, lang }) => {
+    const CommandCenterScreen = ({ companyData, agentResults, onNewDecision, t, lang, userProfile }) => {
         const [copyFeedback, setCopyFeedback] = useState(false);
         const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
@@ -6020,6 +6104,13 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
             <div className="screen-container screen-enter" style={{
                 padding: 'clamp(20px, 4vw, 40px)', maxWidth: 1200, margin: '0 auto'
             }}>
+                {userProfile && (
+                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>
+                        {lang === 'nl'
+                            ? `Welkom terug, ${userProfile.name.split(' ')[0]}. Hier is uw analyse.`
+                            : `Welcome back, ${userProfile.name.split(' ')[0]}. Here's your analysis.`}
+                    </div>
+                )}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
                     <h2 className="section-title">{t(lang).commandCenterTitle}</h2>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 20, background: 'rgba(6,214,160,0.1)', border: '1px solid rgba(6,214,160,0.2)' }}>
@@ -6447,7 +6538,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                     <DecisionEngineScreen companyData={companyData} onComplete={handleEngineComplete} t={t} lang={lang} />
                 )}
                 {screen === 'command' && companyData && (
-                    <CommandCenterScreen companyData={companyData} agentResults={agentResults} onNewDecision={handleNewDecision} t={t} lang={lang} />
+                    <CommandCenterScreen companyData={companyData} agentResults={agentResults} onNewDecision={handleNewDecision} t={t} lang={lang} userProfile={userProfile} />
                 )}
                 </main>
             </div>
