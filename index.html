@@ -2748,7 +2748,7 @@ Datum: ${datePart}`
                             }
 
                             // Reject if it's clearly NOT about a company
-                            const rejectSignals = ['metalband', 'metal band', 'muziekgroep', 'rock band', 'vocalist', 'bassist', 'guitarist', 'drummer', 'album', 'discografie', 'single', 'mythology', 'mytholog', 'titan', 'god ', 'goddess', 'genus', 'species', 'asteroid', 'crater', 'planet', 'fictional character'];
+                            const rejectSignals = ['metalband', 'metal band', 'muziekgroep', 'rock band', 'vocalist', 'bassist', 'guitarist', 'drummer', 'album', 'discografie', 'single', 'mythology', 'mytholog', 'titan', 'god ', 'goddess', 'genus', 'species', 'asteroid', 'crater', 'planet', 'fictional character', ' film ', 'movie', 'directed by', 'regisseur', 'horror', 'drama film', 'comedy film', 'television series', 'tv series', 'novel by', 'book by', 'poem', 'video game', 'starring', 'screenplay'];
                             const hasRejectSignal = rejectSignals.some(s => extractLower.includes(s));
                             if (hasRejectSignal) {
                                 console.log(`[Wikipedia] Skipping "${title}" — contains reject signal (music/mythology/etc.)`);
