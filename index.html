@@ -1342,7 +1342,7 @@
             .progress-stepper { gap: 12px; height: 70px; }
             .stepper-circle { width: 28px; height: 28px; font-size: 12px; }
             body.with-stepper { padding-top: 130px; }
-            .agent-orb { width: 56px; height: 56px; }
+            .agent-orb { width: 60px; height: 60px; }
         }
 
         @media (max-width: 360px) {
@@ -1424,7 +1424,7 @@
             background: rgba(6, 214, 160, 0.4); animation: sparkle 3s ease-in-out infinite;
         }
         .agent-orb {
-            width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            width: 76px; height: 76px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
             font-size: 28px; cursor: default; position: relative; transition: all 0.3s ease;
             --agent-glow: rgba(6, 214, 160, 0.3);
             animation: agentFloat 3s ease-in-out infinite, agentPulse 4s ease-in-out infinite;
@@ -3135,8 +3135,6 @@ Datum: ${datePart}`
         const [phase, setPhase] = useState(0); // 0=agents appear, 1=chat bubbles, 2=main text, 3=CTA
         const [activeChat, setActiveChat] = useState(-1);
         const completedRef = React.useRef(false);
-        const lottieRef = React.useRef(null);
-        const lottieContainerRef = React.useRef(null);
 
         const agents = [
             { type: 'framing', color: '#A78BFA', glow: 'rgba(167,139,250,0.4)', name: 'Nova', tagline: 'De Visionair', chatNl: 'Even kijken wat hier écht speelt...', chatEn: 'Let me see what\'s really going on...' },
@@ -3156,50 +3154,24 @@ Datum: ${datePart}`
             })), []
         );
 
-        // Try Lottie animations - try multiple URLs, hide container if all fail
-        useEffect(() => {
-            if (!lottieContainerRef.current || typeof lottie === 'undefined') return;
-            const urls = [
-                'https://assets9.lottiefiles.com/packages/lf20_xyadoh9h.json',
-                'https://assets10.lottiefiles.com/packages/lf20_ofa3xwo7.json',
-                'https://assets5.lottiefiles.com/packages/lf20_fcfjwiyb.json'
-            ];
-            let idx = 0;
-            const tryLoad = () => {
-                if (idx >= urls.length) {
-                    if (lottieContainerRef.current) lottieContainerRef.current.style.display = 'none';
-                    return;
-                }
-                try {
-                    if (lottieRef.current) lottieRef.current.destroy();
-                    lottieRef.current = lottie.loadAnimation({
-                        container: lottieContainerRef.current,
-                        renderer: 'svg', loop: true, autoplay: true,
-                        path: urls[idx]
-                    });
-                    lottieRef.current.addEventListener('data_failed', () => {
-                        idx++;
-                        tryLoad();
-                    });
-                } catch(e) {
-                    if (lottieContainerRef.current) lottieContainerRef.current.style.display = 'none';
-                }
-            };
-            tryLoad();
-            return () => { if (lottieRef.current) try { lottieRef.current.destroy(); } catch(e) {} };
-        }, []);
+        // Track which agents are visible (reveal 1-by-1)
+        const [visibleAgents, setVisibleAgents] = useState(0);
 
-        // Animation phases — fast reveal (~3s total)
+        // Animation phases — agents appear 1-by-1, then text, then CTA
         useEffect(() => {
             const timers = [
-                setTimeout(() => setPhase(1), 400),    // Show chat bubbles
-                setTimeout(() => setActiveChat(0), 600),
-                setTimeout(() => setActiveChat(1), 1000),
-                setTimeout(() => setActiveChat(2), 1400),
-                setTimeout(() => setActiveChat(3), 1800),
-                setTimeout(() => setActiveChat(4), 2200),
-                setTimeout(() => setPhase(2), 2400),   // Show main text
-                setTimeout(() => setPhase(3), 2800),   // Show CTA
+                setTimeout(() => setVisibleAgents(1), 200),
+                setTimeout(() => setVisibleAgents(2), 500),
+                setTimeout(() => setVisibleAgents(3), 800),
+                setTimeout(() => setVisibleAgents(4), 1100),
+                setTimeout(() => setVisibleAgents(5), 1400),
+                setTimeout(() => { setPhase(1); setActiveChat(0); }, 1700),
+                setTimeout(() => setActiveChat(1), 2100),
+                setTimeout(() => setActiveChat(2), 2500),
+                setTimeout(() => setActiveChat(3), 2900),
+                setTimeout(() => setActiveChat(4), 3300),
+                setTimeout(() => setPhase(2), 3500),   // Show main text
+                setTimeout(() => setPhase(3), 3900),   // Show CTA
             ];
             return () => timers.forEach(clearTimeout);
         }, []);
@@ -3223,18 +3195,15 @@ Datum: ${datePart}`
                     ))}
                 </div>
 
-                {/* Lottie container - shows robot if available, hidden if no animation loads */}
-                <div ref={lottieContainerRef} style={{ width: 120, height: 120, marginBottom: 8, opacity: 0.6 }} />
-
-                {/* Agent orbs row */}
+                {/* Agent orbs row — appear 1 by 1 */}
                 <div style={{
-                    display: 'flex', gap: 24, marginBottom: 40, alignItems: 'flex-end', minHeight: 120
+                    display: 'flex', gap: 24, marginBottom: 40, alignItems: 'flex-end', minHeight: 140
                 }}>
                     {agents.map((agent, i) => (
                         <div key={i} style={{
-                            opacity: phase >= 0 ? 1 : 0,
-                            transform: phase >= 0 ? 'translateY(0)' : 'translateY(40px)',
-                            transition: `all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${i * 0.15}s`,
+                            opacity: visibleAgents > i ? 1 : 0,
+                            transform: visibleAgents > i ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.5)',
+                            transition: `all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)`,
                             position: 'relative'
                         }}>
                             {/* Chat bubble - show only the currently active agent's bubble */}
@@ -3250,13 +3219,13 @@ Datum: ${datePart}`
                                 animationDelay: `${i * 0.4}s, ${i * 0.6}s`,
                                 padding: 0, overflow: 'hidden'
                             }}>
-                                <AgentAvatar type={agent.type} size={56} color={agent.color} />
+                                <AgentAvatar type={agent.type} size={68} color={agent.color} />
                             </div>
                             <div style={{ textAlign: 'center', marginTop: 8 }}>
-                                <div style={{ fontSize: 12, color: agent.color, fontWeight: 700, letterSpacing: 0.5 }}>
+                                <div style={{ fontSize: 13, color: agent.color, fontWeight: 700, letterSpacing: 0.5 }}>
                                     {agent.name}
                                 </div>
-                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginTop: 2, fontStyle: 'italic' }}>
+                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', marginTop: 2, fontStyle: 'italic' }}>
                                     {agent.tagline}
                                 </div>
                             </div>
