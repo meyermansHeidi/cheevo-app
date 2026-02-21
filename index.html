@@ -2337,45 +2337,21 @@
         return demoData[agentName]?.[lang] || demoData[agentName]?.nl || '';
     };
 
-    /* ==================== API CALLS — DIRECT ANTHROPIC API ==================== */
+    /* ==================== API CALLS — SERVER-SIDE PROXY (Worker) ==================== */
 
-    // API key is loaded from localStorage — if not set, app runs in demo mode (no popup)
-    let ANTHROPIC_API_KEY = localStorage.getItem('cheevo_api_key') || '';
-
-    function ensureApiKey() {
-        if (ANTHROPIC_API_KEY) return true;
-        // No popup — silently fall back to demo mode
-        return false;
-    }
-
-    // Allow users to set API key via Settings or console: setCheevoApiKey('sk-ant-...')
-    window.setCheevoApiKey = function(key) {
-        if (key && key.startsWith('sk-ant-')) {
-            ANTHROPIC_API_KEY = key;
-            localStorage.setItem('cheevo_api_key', key);
-            console.log('✅ API key saved! Reload to use live AI.');
-            return true;
-        }
-        console.log('❌ Invalid key. Must start with sk-ant-');
-        return false;
-    };
     const ANTHROPIC_MODEL = 'claude-sonnet-4-5-20250929';
 
-    // Cloudflare Worker proxy URL voor KBO, GNews, Finnhub
+    // Cloudflare Worker proxy URL — alle API calls gaan via de Worker (API keys server-side)
     const WORKER_URL = 'https://cheev-api.heidi-9a9.workers.dev';
 
-    // Direct call to Anthropic API from browser (CORS enabled with dangerous-direct-browser-access header)
+    // AI call via Worker proxy — geen API key in browser nodig
     async function callAnthropicDirect(systemPrompt, userMessage, maxTokens = 2048, temperature = 0.7) {
-        if (!ensureApiKey()) throw new Error('No API key — using demo mode');
         if (!rateLimiter.canCall()) throw new Error('Rate limit exceeded — please wait before making more requests');
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
+
+        // Route via Worker proxy (API key stays server-side)
+        const response = await fetch(WORKER_URL + '/api/anthropic', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': ANTHROPIC_API_KEY,
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 model: ANTHROPIC_MODEL,
                 max_tokens: maxTokens,
@@ -2384,6 +2360,7 @@
                 messages: [{ role: 'user', content: userMessage }]
             })
         });
+
         if (!response.ok) {
             const errData = await response.json().catch(() => ({}));
             throw new Error(`Anthropic API ${response.status}: ${errData.error?.message || 'Unknown error'}`);
@@ -5964,7 +5941,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                                 <div style={{ marginBottom: 16, padding: '10px 16px', borderRadius: 10, background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)', display: 'flex', alignItems: 'center', gap: 8, animation: 'fadeInUp 0.4s ease' }}>
                                     <span style={{ fontSize: 14 }}>📋</span>
                                     <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>
-                                        {lang === 'nl' ? 'Demo-modus: pre-built analyses. Voeg een API-key toe voor live AI.' : 'Demo mode: pre-built analyses. Add an API key for live AI.'}
+                                        {lang === 'nl' ? 'Demo-modus: pre-built analyses. De server AI-verbinding is tijdelijk niet beschikbaar.' : 'Demo mode: pre-built analyses. Server AI connection temporarily unavailable.'}
                                     </span>
                                 </div>
                             );
