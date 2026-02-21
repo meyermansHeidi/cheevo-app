@@ -13,6 +13,7 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 
     <style>
         * {
@@ -5592,12 +5593,25 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
         const [customQuestion, setCustomQuestion] = useState('Wat is onze strategische richting?');
         const [showCustomInput, setShowCustomInput] = useState(false);
         const [isRunning, setIsRunning] = useState(true);
+        const [runKey, setRunKey] = useState(0);
         const abortRef = useRef(null);
+        const questionRef = useRef(customQuestion);
+
+        // Keep ref in sync
+        useEffect(() => { questionRef.current = customQuestion; }, [customQuestion]);
 
         useEffect(() => {
             const defaultQuestion = lang === 'nl' ? 'Wat is onze strategische richting?' : 'What is our strategic direction?';
             setCustomQuestion(defaultQuestion);
         }, [lang]);
+
+        // Re-run agents function
+        const reRunAgents = useCallback(() => {
+            if (isRunning) return;
+            setShowMonteCarloOptions(false);
+            setSelectedAgent(null);
+            setRunKey(k => k + 1);
+        }, [isRunning]);
 
         useEffect(() => {
             const controller = new AbortController();
@@ -5605,13 +5619,14 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
             let isMounted = true;
 
             const runAgentsParallel = async () => {
-                setAgents(prev => prev.map(a => ({ ...a, status: 'thinking' })));
+                setIsRunning(true);
+                setAgents(prev => prev.map(a => ({ ...a, status: 'thinking', result: null })));
 
                 // Sanitize inputs for prompt injection prevention
                 const sanitize = (str) => String(str || '').replace(/[`]/g, '');
                 const safeCompany = sanitize(companyData.company);
                 const safeSector = sanitize(companyData.sector);
-                const safeQuestion = sanitize(customQuestion);
+                const safeQuestion = sanitize(questionRef.current);
 
                 const systemPrompts = INITIAL_AGENTS.map(agent =>
                     getAgentSystemPrompt(agent.name, safeCompany, safeSector, lang, safeQuestion, companyData)
@@ -5629,7 +5644,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                         )
                     );
 
-                    if (!isMounted) return; // Don't update state if unmounted
+                    if (!isMounted) return;
 
                     setAgents(prev =>
                         prev.map((agent, idx) => ({
@@ -5646,7 +5661,6 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                 } catch (err) {
                     console.error('Agent execution failed:', err);
                     if (!isMounted) return;
-                    // Fallback: use demo responses for all agents
                     setAgents(prev =>
                         prev.map(agent => ({
                             ...agent,
@@ -5665,7 +5679,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                 isMounted = false;
                 controller.abort();
             };
-        }, []);
+        }, [runKey]);
 
         const allDone = agents.every(a => a.status === 'done');
 
@@ -5721,11 +5735,17 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                             type="text"
                             value={customQuestion}
                             onChange={(e) => setCustomQuestion(e.target.value)}
+                            onKeyPress={(e) => { if (e.key === 'Enter' && !isRunning) reRunAgents(); }}
                             placeholder={t(lang).enterDecisionQuestion}
                             className="input-field"
                             style={{ flex: 1 }}
                             disabled={isRunning}
                         />
+                        {!isRunning && (
+                            <button onClick={reRunAgents} className="btn-primary" style={{ whiteSpace: 'nowrap', padding: '10px 20px', fontSize: 13 }}>
+                                {lang === 'nl' ? '🔄 Heranalyseer' : '🔄 Re-analyze'}
+                            </button>
+                        )}
                     </div>
                     {/* Decision templates — personalized to sector */}
                     {!isRunning && (
@@ -5775,7 +5795,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                                 }
                                 return (lang === 'nl' ? baseNl : baseEn);
                             })().map((q, i) => (
-                                <button key={i} onClick={() => setCustomQuestion(q)} style={{
+                                <button key={i} onClick={() => { setCustomQuestion(q); questionRef.current = q; setTimeout(() => reRunAgents(), 100); }} style={{
                                     fontSize: 11, padding: '6px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.12)',
                                     background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
                                     transition: 'all 0.2s ease'
