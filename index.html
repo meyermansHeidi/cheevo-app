@@ -2751,15 +2751,20 @@ Datum: ${datePart}`
                             const companySignals = ['company', 'corporation', 'founded', 'headquarter', 'employees', 'business', 'bedrijf', 'opgericht', 'nv', 'bv', 'services', 'industry', 'revenue', 'ceo', 'multinational', 'information technology', 'ict', 'software', 'dienstverlen', 'technologi'];
                             const hasCompanySignal = companySignals.some(s => extractLower.includes(s));
 
+                            // Title-based reject — if title contains disambiguation like (band), (film), (zanger), always reject
+                            const titleLower = title.toLowerCase();
+                            const titleRejectPatterns = ['(band)', '(film)', '(zanger)', '(singer)', '(song)', '(lied)', '(album)', '(mythology)', '(genus)', '(plant)', '(insect)', '(spacecraft)', '(asteroid)'];
+                            const titleReject = titleRejectPatterns.some(p => titleLower.includes(p));
+
                             // Reject signals — only block articles that are NOT about companies
                             // (A company like Apple Inc. may mention "film", "drama" etc. because of Apple TV+)
-                            const rejectSignals = ['metalband', 'metal band', 'muziekgroep', 'rock band', 'vocalist', 'bassist', 'guitarist', 'drummer', 'album', 'discografie', 'mythology', 'mytholog', 'titan', 'god ', 'goddess', 'genus', 'species', 'asteroid', 'crater', 'planet', 'fictional character', 'cannabis', 'marijuana'];
-                            // Strong reject signals — these ALWAYS reject even if company signals present
-                            const strongRejectSignals = ['is a film', 'is een film', 'is a song', 'is een lied', 'is a band', 'is een band', 'is a genus', 'is een geslacht'];
+                            const rejectSignals = ['mythology', 'mytholog', 'titan', 'god ', 'goddess', 'genus', 'species', 'asteroid', 'crater', 'planet', 'fictional character', 'cannabis', 'marijuana'];
+                            // Strong reject signals in extract — these ALWAYS reject even if company signals present
+                            const strongRejectSignals = ['is a film', 'is een film', 'is a song', 'is een lied', 'is a genus', 'is een geslacht', 'metalband', 'metal band', 'muziekgroep', 'rock band', 'punk band', 'pop band', 'is een band', 'heavy metal band', 'vocalist', 'bassist', 'guitarist', 'drummer'];
                             const hasRejectSignal = rejectSignals.some(s => extractLower.includes(s));
                             const hasStrongReject = strongRejectSignals.some(s => extractLower.includes(s));
-                            if (hasStrongReject || (hasRejectSignal && !hasCompanySignal)) {
-                                console.log(`[Wikipedia] Skipping "${title}" — reject signal found (strong: ${hasStrongReject}, company: ${hasCompanySignal})`);
+                            if (titleReject || hasStrongReject || (hasRejectSignal && !hasCompanySignal)) {
+                                console.log(`[Wikipedia] Skipping "${title}" — reject (title: ${titleReject}, strong: ${hasStrongReject}, company: ${hasCompanySignal})`);
                                 continue;
                             }
 
