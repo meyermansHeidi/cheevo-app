@@ -2752,7 +2752,6 @@ Datum: ${datePart}`
                             const hasCompanySignal = companySignals.some(s => extractLower.includes(s));
 
                             // Title-based reject — if title contains disambiguation like (band), (film), (zanger), always reject
-                            const titleLower = title.toLowerCase();
                             const titleRejectPatterns = ['(band)', '(film)', '(zanger)', '(singer)', '(song)', '(lied)', '(album)', '(mythology)', '(genus)', '(plant)', '(insect)', '(spacecraft)', '(asteroid)'];
                             const titleReject = titleRejectPatterns.some(p => titleLower.includes(p));
 
