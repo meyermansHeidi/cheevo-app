@@ -4900,6 +4900,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
         const [liveContext, setLiveContext] = React.useState(null);
         const [contextLoading, setContextLoading] = React.useState(true);
         const [realTimeStatus, setRealTimeStatus] = React.useState({ wikipedia: 'loading', wikidata: 'loading', kbo: 'loading' });
+        const { addToast } = React.useContext(ToastContext);
         const fallbackInsights = generateInsights(companyData, lang);
 
         // Fetch REAL-TIME data from Wikipedia + Wikidata (100% verifieerbaar)
@@ -4915,9 +4916,12 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                     const enriched = enrichCompanyData(mockData, rtData);
                     setCompanyData(enriched);
                     console.log('[RealTime] Enriched company data:', enriched);
+                    const srcCount = enriched.realTimeSources?.length || 0;
+                    if (srcCount > 0) addToast(lang === 'nl' ? `${srcCount} databronnen geladen` : `${srcCount} data sources loaded`, 'success');
                 } catch (err) {
                     console.warn('[RealTime] Enrichment failed, using mock data:', err);
                     setRealTimeStatus({ wikipedia: 'error', wikidata: 'error' });
+                    addToast(lang === 'nl' ? 'Databronnen niet bereikbaar, standaardprofiel gebruikt' : 'Data sources unreachable, using default profile', 'warning');
                 }
             };
             fetchRealTime();
@@ -5827,13 +5831,15 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                                 </div>
                             </div>
                             {agent.result && agent.result.isLive && (
-                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                                    <span style={{ color: '#06D6A0', fontWeight: 600 }}>AI</span> • {agent.result.elapsed}s
+                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ padding: '1px 6px', borderRadius: 4, background: 'rgba(6,214,160,0.12)', color: '#06D6A0', fontWeight: 600, fontSize: 9 }}>LIVE AI</span>
+                                    <span>{agent.result.elapsed}s</span>
                                 </div>
                             )}
                             {agent.result && !agent.result.isLive && (
-                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                                    <span style={{ color: '#06D6A0', fontWeight: 600 }}>AI</span> • {lang === 'nl' ? 'analyse klaar' : 'analysis ready'}
+                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ padding: '1px 6px', borderRadius: 4, background: 'rgba(251,191,36,0.12)', color: '#FBBF24', fontWeight: 600, fontSize: 9 }}>DEMO</span>
+                                    <span>{lang === 'nl' ? 'Pre-built analyse' : 'Pre-built analysis'}</span>
                                 </div>
                             )}
                             {agent.status === 'done' && (
@@ -5851,6 +5857,35 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
 
                 {allDone && (
                     <>
+                        {/* Partial success indicator */}
+                        {(() => {
+                            const liveCount = agents.filter(a => a.result?.isLive).length;
+                            const total = agents.length;
+                            if (liveCount === total) return (
+                                <div style={{ marginBottom: 16, padding: '10px 16px', borderRadius: 10, background: 'rgba(6,214,160,0.08)', border: '1px solid rgba(6,214,160,0.2)', display: 'flex', alignItems: 'center', gap: 8, animation: 'fadeInUp 0.4s ease' }}>
+                                    <span style={{ fontSize: 14 }}>✅</span>
+                                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>
+                                        {lang === 'nl' ? `Alle ${total} agents gebruiken live AI-analyse` : `All ${total} agents using live AI analysis`}
+                                    </span>
+                                </div>
+                            );
+                            if (liveCount > 0) return (
+                                <div style={{ marginBottom: 16, padding: '10px 16px', borderRadius: 10, background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)', display: 'flex', alignItems: 'center', gap: 8, animation: 'fadeInUp 0.4s ease' }}>
+                                    <span style={{ fontSize: 14 }}>⚡</span>
+                                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>
+                                        {lang === 'nl' ? `${liveCount}/${total} agents met live AI, ${total - liveCount} met pre-built analyse` : `${liveCount}/${total} agents with live AI, ${total - liveCount} with pre-built analysis`}
+                                    </span>
+                                </div>
+                            );
+                            return (
+                                <div style={{ marginBottom: 16, padding: '10px 16px', borderRadius: 10, background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)', display: 'flex', alignItems: 'center', gap: 8, animation: 'fadeInUp 0.4s ease' }}>
+                                    <span style={{ fontSize: 14 }}>📋</span>
+                                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>
+                                        {lang === 'nl' ? 'Demo-modus: pre-built analyses. Voeg een API-key toe voor live AI.' : 'Demo mode: pre-built analyses. Add an API key for live AI.'}
+                                    </span>
+                                </div>
+                            );
+                        })()}
                         <ConsensusView agentResults={agents} lang={lang} />
 
                         <div style={{ marginBottom: 24 }}>
@@ -6372,6 +6407,40 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
         );
     };
 
+    /* ==================== TOAST NOTIFICATION ==================== */
+    const ToastContext = React.createContext({ addToast: () => {} });
+
+    const ToastProvider = ({ children }) => {
+        const [toasts, setToasts] = useState([]);
+        const addToast = useCallback((message, type = 'info', duration = 4000) => {
+            const id = Date.now() + Math.random();
+            setToasts(prev => [...prev, { id, message, type }]);
+            setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), duration);
+        }, []);
+        const colors = { success: '#06D6A0', error: '#EF4444', warning: '#FBBF24', info: '#60A5FA' };
+        const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
+        return React.createElement(ToastContext.Provider, { value: { addToast } },
+            children,
+            React.createElement('div', {
+                style: { position: 'fixed', top: 80, right: 20, zIndex: 10000, display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none' },
+                'aria-live': 'polite'
+            },
+                toasts.map(toast => React.createElement('div', {
+                    key: toast.id,
+                    style: {
+                        padding: '10px 16px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 8,
+                        background: 'rgba(10,10,15,0.95)', border: `1px solid ${colors[toast.type]}30`,
+                        boxShadow: `0 4px 20px ${colors[toast.type]}20`, animation: 'fadeInUp 0.3s ease',
+                        pointerEvents: 'auto', maxWidth: 360
+                    }
+                },
+                    React.createElement('span', { style: { color: colors[toast.type], fontWeight: 700, fontSize: 14 } }, icons[toast.type]),
+                    React.createElement('span', { style: { fontSize: 12, color: 'rgba(255,255,255,0.85)' } }, toast.message)
+                ))
+            )
+        );
+    };
+
     /* ==================== MAIN APP ==================== */
 
     // --- User Profile Avatar component ---
@@ -6548,7 +6617,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
     /* ==================== RENDER ==================== */
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<ErrorBoundary><App /></ErrorBoundary>);
+    root.render(<ErrorBoundary><ToastProvider><App /></ToastProvider></ErrorBoundary>);
 </script>
 </body>
 </html>
