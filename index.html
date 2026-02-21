@@ -2737,10 +2737,20 @@ Datum: ${datePart}`
                         const page = pages ? Object.values(pages)[0] : null;
                         if (page?.extract && page.extract.length > 50) {
                             const extractLower = page.extract.toLowerCase();
-                            // Validate it's likely about a company
-                            const companySignals = ['company', 'corporation', 'founded', 'headquarter', 'employees', 'business', 'group', 'groep', 'bedrijf', 'opgericht', 'nv', 'bv', 'services', 'industry'];
+                            const titleLower = title.toLowerCase();
+                            const companyLower = companyName.toLowerCase();
+
+                            // Validate: article title or extract must mention the company name
+                            const mentionsCompany = titleLower.includes(companyLower) || extractLower.includes(companyLower);
+                            if (!mentionsCompany) {
+                                console.log(`[Wikipedia] Skipping "${title}" — doesn't mention "${companyName}"`);
+                                continue;
+                            }
+
+                            // Validate it's likely about a company (not mythology, fruit, etc.)
+                            const companySignals = ['company', 'corporation', 'founded', 'headquarter', 'employees', 'business', 'group', 'groep', 'bedrijf', 'opgericht', 'nv', 'bv', 'services', 'industry', 'revenue', 'ceo', 'multinational', 'information technology', 'ict', 'software'];
                             const hasCompanySignal = companySignals.some(s => extractLower.includes(s));
-                            if (hasCompanySignal || queries.indexOf(query) === queries.length - 1) {
+                            if (hasCompanySignal) {
                                 clearTimeout(timeout);
                                 return {
                                     title,
@@ -2836,8 +2846,8 @@ Datum: ${datePart}`
         const timeout = setTimeout(() => controller.abort(), 8000);
         const countryHints = getCountryHintsFromDomain(domain || '');
         try {
-            // Step 1: Use Wikidata search API to find entity ID (fast, no SPARQL)
-            // Try both EN and the domain's language for better local company matching
+            // Step 1: Use Wikidata search API with MULTIPLE VARIANTS
+            // e.g. "Cronos" → also try "Cronos Group", "Cronos Groep", "Cronos NV"
             const searchLanguages = ['en'];
             const tld = (domain || '').split('.').pop();
             const tldLangMap = { 'be': 'nl', 'nl': 'nl', 'de': 'de', 'fr': 'fr', 'es': 'es', 'it': 'it', 'pt': 'pt', 'pl': 'pl' };
@@ -2845,13 +2855,26 @@ Datum: ${datePart}`
                 searchLanguages.push(tldLangMap[tld]);
             }
 
+            // Build search variants — critical for disambiguation
+            const searchVariants = [companyName];
+            // Add company-type suffixes
+            const suffixes = ['Group', 'Groep', 'NV', 'Inc', 'Corporation', 'Company', 'Technologies'];
+            for (const suffix of suffixes) {
+                if (!companyName.toLowerCase().includes(suffix.toLowerCase())) {
+                    searchVariants.push(`${companyName} ${suffix}`);
+                }
+            }
+            console.log(`[Wikidata] Search variants: ${searchVariants.join(', ')}`);
+
             let allResults = [];
             for (const lang of searchLanguages) {
-                const searchUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(companyName)}&language=${lang}&limit=5&format=json&origin=*`;
-                const searchRes = await fetch(searchUrl, { signal: controller.signal });
-                const searchData = await searchRes.json();
-                if (searchData.search?.length) {
-                    allResults.push(...searchData.search);
+                for (const variant of searchVariants) {
+                    const searchUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(variant)}&language=${lang}&limit=5&format=json&origin=*`;
+                    const searchRes = await fetch(searchUrl, { signal: controller.signal });
+                    const searchData = await searchRes.json();
+                    if (searchData.search?.length) {
+                        allResults.push(...searchData.search);
+                    }
                 }
             }
 
@@ -2871,7 +2894,7 @@ Datum: ${datePart}`
 
             // Find best match using multi-factor scoring
             const companyKeywords = ['company', 'corporation', 'enterprise', 'software', 'firm', 'bedrijf', 'onderneming', 'platform', 'technology', 'group', 'groep', 'holding', 'services', 'consulting', 'it company', 'multinational'];
-            const negativeKeywords = ['cannabis', 'marijuana', 'weed', 'drug', 'pharma', 'film', 'movie', 'band', 'song', 'album', 'novel', 'book', 'village', 'municipality', 'person', 'fictional'];
+            const negativeKeywords = ['cannabis', 'marijuana', 'weed', 'drug', 'pharma', 'film', 'movie', 'band', 'song', 'album', 'novel', 'book', 'village', 'municipality', 'person', 'fictional', 'mythology', 'mytholog', 'titan', 'journal', 'academic', 'periodical', 'vocalist', 'bassist', 'cycling', 'sport team', 'asteroid', 'genus', 'species'];
 
             let bestMatch = allResults[0];
             let bestScore = -999;
