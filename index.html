@@ -4285,11 +4285,11 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
         const completedRef = React.useRef(false);
 
         const agents = [
-            { type: 'framing', color: '#A78BFA', glow: 'rgba(167,139,250,0.4)', name: 'Nova', tagline: 'De Visionair', chatNl: 'Even kijken wat hier écht speelt...', chatEn: 'Let me see what\'s really going on...' },
-            { type: 'data', color: '#60A5FA', glow: 'rgba(96,165,250,0.4)', name: 'Byte', tagline: 'De Analyst', chatNl: 'Data liegt nooit — ik crunch!', chatEn: 'Data never lies — crunching!' },
-            { type: 'options', color: '#06D6A0', glow: 'rgba(6,214,160,0.4)', name: 'Spark', tagline: 'De Strateeg', chatNl: 'Ik zie al drie opties!', chatEn: 'I already see three options!' },
-            { type: 'risk', color: '#FBBF24', glow: 'rgba(251,191,36,0.4)', name: 'Shield', tagline: 'De Bewaker', chatNl: 'Ik check de valkuilen.', chatEn: 'Checking for pitfalls.' },
-            { type: 'recommendation', color: '#FB7185', glow: 'rgba(251,113,133,0.4)', name: 'Sage', tagline: 'De Adviseur', chatNl: 'Klaar om te adviseren!', chatEn: 'Ready to advise!' }
+            { type: 'framing', color: '#A78BFA', glow: 'rgba(167,139,250,0.4)', name: 'Lennon', tagline: 'De Dromer', chatNl: 'Imagine… wat als we het anders bekijken?', chatEn: 'Imagine… what if we look at it differently?' },
+            { type: 'data', color: '#60A5FA', glow: 'rgba(96,165,250,0.4)', name: 'McCartney', tagline: 'De Componist', chatNl: 'De cijfers vertellen het verhaal!', chatEn: 'The numbers tell the story!' },
+            { type: 'options', color: '#06D6A0', glow: 'rgba(6,214,160,0.4)', name: 'Harrison', tagline: 'De Stille Kracht', chatNl: 'Here comes the sun… en drie opties!', chatEn: 'Here comes the sun… and three options!' },
+            { type: 'risk', color: '#FBBF24', glow: 'rgba(251,191,36,0.4)', name: 'Starr', tagline: 'De Taktmeester', chatNl: 'Even het ritme checken, geen misstappen!', chatEn: 'Checking the rhythm, no missteps!' },
+            { type: 'recommendation', color: '#FB7185', glow: 'rgba(251,113,133,0.4)', name: 'Yoko', tagline: 'De Doordenker', chatNl: 'Het juiste besluit, come together!', chatEn: 'The right decision, come together!' }
         ];
 
         const particles = React.useMemo(() =>
@@ -5577,13 +5577,13 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
         );
     };
 
-    // INITIAL_AGENTS constant — "The Decision Squad" with unique personalities
+    // INITIAL_AGENTS constant — "The Fab Five" with Beatles-inspired personalities
     const INITIAL_AGENTS = [
-        { name: 'Framing Agent', nickname: 'Nova', tagline: 'De Visionair', personality: 'Ziet altijd het grote geheel', status: 'waiting', result: null, color: '#8B5CF6', type: 'framing' },
-        { name: 'Data Agent', nickname: 'Byte', tagline: 'De Analyst', personality: 'Data liegt nooit', status: 'waiting', result: null, color: '#3B82F6', type: 'data' },
-        { name: 'Options Agent', nickname: 'Spark', tagline: 'De Strateeg', personality: 'Er is altijd een betere optie', status: 'waiting', result: null, color: '#06D6A0', type: 'options' },
-        { name: 'Risk Agent', nickname: 'Shield', tagline: 'De Bewaker', personality: 'Ik bescherm wat je kunt verliezen', status: 'waiting', result: null, color: '#F59E0B', type: 'risk' },
-        { name: 'Recommendation Agent', nickname: 'Sage', tagline: 'De Adviseur', personality: 'Het juiste besluit op het juiste moment', status: 'waiting', result: null, color: '#EC4899', type: 'recommendation' }
+        { name: 'Framing Agent', nickname: 'Lennon', tagline: 'De Dromer', personality: 'Imagine… ik zie het grote geheel', status: 'waiting', result: null, color: '#8B5CF6', type: 'framing' },
+        { name: 'Data Agent', nickname: 'McCartney', tagline: 'De Componist', personality: 'Data is mijn melodie', status: 'waiting', result: null, color: '#3B82F6', type: 'data' },
+        { name: 'Options Agent', nickname: 'Harrison', tagline: 'De Stille Kracht', personality: 'Here comes the sun… en betere opties', status: 'waiting', result: null, color: '#06D6A0', type: 'options' },
+        { name: 'Risk Agent', nickname: 'Starr', tagline: 'De Taktmeester', personality: 'Ik houd het ritme — geen misstappen', status: 'waiting', result: null, color: '#F59E0B', type: 'risk' },
+        { name: 'Recommendation Agent', nickname: 'Yoko', tagline: 'De Doordenker', personality: 'Come together — het juiste besluit', status: 'waiting', result: null, color: '#EC4899', type: 'recommendation' }
     ];
 
     const DecisionEngineScreen = ({ companyData, onComplete, t, lang }) => {
