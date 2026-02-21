@@ -2608,11 +2608,12 @@ Datum: ${datePart}`
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
         try {
-            // Try multiple search variants
+            // Try "company" variants FIRST to avoid disambiguation (e.g. "Apple" → fruit)
             const searchVariants = [
-                companyName,
                 companyName + ' company',
-                companyName + ' software'
+                companyName + ' Inc',
+                companyName + ' corporation',
+                companyName
             ];
             for (const query of searchVariants) {
                 const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=1&format=json&origin=*`;
