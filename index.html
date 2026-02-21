@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https:; img-src 'self' https: data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com https://en.wikipedia.org https://nl.wikipedia.org https://www.wikidata.org https://query.wikidata.org https://*.wikipedia.org https://*.wikidata.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https:; img-src 'self' https: data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com https://en.wikipedia.org https://nl.wikipedia.org https://www.wikidata.org https://query.wikidata.org https://*.wikipedia.org https://*.wikidata.org https://www.gravatar.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdnjs.cloudflare.com;">
     <meta name="description" content="CheevO! Decision Intelligence Platform — AI-driven besluitvormingsanalyse voor organisaties">
     <meta name="robots" content="noindex, nofollow">
     <title>CheevO! — Decision Intelligence Platform</title>
@@ -2601,104 +2601,322 @@ Datum: ${datePart}`
         return prompts[agentName] || prompts['Framing Agent'];
     }
 
+    /* ==================== USER PROFILE APIs ==================== */
+
+    // --- Simple MD5 hash for Gravatar (lightweight, no dependency) ---
+    function md5(string) {
+        function md5cycle(x, k) {
+            var a = x[0], b = x[1], c = x[2], d = x[3];
+            a = ff(a, b, c, d, k[0], 7, -680876936); d = ff(d, a, b, c, k[1], 12, -389564586);
+            c = ff(c, d, a, b, k[2], 17, 606105819); b = ff(b, c, d, a, k[3], 22, -1044525330);
+            a = ff(a, b, c, d, k[4], 7, -176418897); d = ff(d, a, b, c, k[5], 12, 1200080426);
+            c = ff(c, d, a, b, k[6], 17, -1473231341); b = ff(b, c, d, a, k[7], 22, -45705983);
+            a = ff(a, b, c, d, k[8], 7, 1770035416); d = ff(d, a, b, c, k[9], 12, -1958414417);
+            c = ff(c, d, a, b, k[10], 17, -42063); b = ff(b, c, d, a, k[11], 22, -1990404162);
+            a = ff(a, b, c, d, k[12], 7, 1804603682); d = ff(d, a, b, c, k[13], 12, -40341101);
+            c = ff(c, d, a, b, k[14], 17, -1502002290); b = ff(b, c, d, a, k[15], 22, 1236535329);
+            a = gg(a, b, c, d, k[1], 5, -165796510); d = gg(d, a, b, c, k[6], 9, -1069501632);
+            c = gg(c, d, a, b, k[11], 14, 643717713); b = gg(b, c, d, a, k[0], 20, -373897302);
+            a = gg(a, b, c, d, k[5], 5, -701558691); d = gg(d, a, b, c, k[10], 9, 38016083);
+            c = gg(c, d, a, b, k[15], 14, -660478335); b = gg(b, c, d, a, k[4], 20, -405537848);
+            a = gg(a, b, c, d, k[9], 5, 568446438); d = gg(d, a, b, c, k[14], 9, -1019803690);
+            c = gg(c, d, a, b, k[3], 14, -187363961); b = gg(b, c, d, a, k[8], 20, 1163531501);
+            a = gg(a, b, c, d, k[13], 5, -1444681467); d = gg(d, a, b, c, k[2], 9, -51403784);
+            c = gg(c, d, a, b, k[7], 14, 1735328473); b = gg(b, c, d, a, k[12], 20, -1926607734);
+            a = hh(a, b, c, d, k[5], 4, -378558); d = hh(d, a, b, c, k[8], 11, -2022574463);
+            c = hh(c, d, a, b, k[11], 16, 1839030562); b = hh(b, c, d, a, k[14], 23, -35309556);
+            a = hh(a, b, c, d, k[1], 4, -1530992060); d = hh(d, a, b, c, k[4], 11, 1272893353);
+            c = hh(c, d, a, b, k[7], 16, -155497632); b = hh(b, c, d, a, k[10], 23, -1094730640);
+            a = hh(a, b, c, d, k[13], 4, 681279174); d = hh(d, a, b, c, k[0], 11, -358537222);
+            c = hh(c, d, a, b, k[3], 16, -722521979); b = hh(b, c, d, a, k[6], 23, 76029189);
+            a = hh(a, b, c, d, k[9], 4, -640364487); d = hh(d, a, b, c, k[12], 11, -421815835);
+            c = hh(c, d, a, b, k[15], 16, 530742520); b = hh(b, c, d, a, k[2], 23, -995338651);
+            a = ii(a, b, c, d, k[0], 6, -198630844); d = ii(d, a, b, c, k[7], 10, 1126891415);
+            c = ii(c, d, a, b, k[14], 15, -1416354905); b = ii(b, c, d, a, k[5], 21, -57434055);
+            a = ii(a, b, c, d, k[12], 6, 1700485571); d = ii(d, a, b, c, k[3], 10, -1894986606);
+            c = ii(c, d, a, b, k[10], 15, -1051523); b = ii(b, c, d, a, k[1], 21, -2054922799);
+            a = ii(a, b, c, d, k[8], 6, 1873313359); d = ii(d, a, b, c, k[15], 10, -30611744);
+            c = ii(c, d, a, b, k[6], 15, -1560198380); b = ii(b, c, d, a, k[13], 21, 1309151649);
+            a = ii(a, b, c, d, k[4], 6, -145523070); d = ii(d, a, b, c, k[11], 10, -1120210379);
+            c = ii(c, d, a, b, k[2], 15, 718787259); b = ii(b, c, d, a, k[9], 21, -343485551);
+            x[0] = add32(a, x[0]); x[1] = add32(b, x[1]); x[2] = add32(c, x[2]); x[3] = add32(d, x[3]);
+        }
+        function cmn(q, a, b, x, s, t) { a = add32(add32(a, q), add32(x, t)); return add32((a << s) | (a >>> (32 - s)), b); }
+        function ff(a, b, c, d, x, s, t) { return cmn((b & c) | ((~b) & d), a, b, x, s, t); }
+        function gg(a, b, c, d, x, s, t) { return cmn((b & d) | (c & (~d)), a, b, x, s, t); }
+        function hh(a, b, c, d, x, s, t) { return cmn(b ^ c ^ d, a, b, x, s, t); }
+        function ii(a, b, c, d, x, s, t) { return cmn(c ^ (b | (~d)), a, b, x, s, t); }
+        function md51(s) {
+            var n = s.length, state = [1732584193, -271733879, -1732584194, 271733878], i;
+            for (i = 64; i <= s.length; i += 64) { md5cycle(state, md5blk(s.substring(i - 64, i))); }
+            s = s.substring(i - 64); var tail = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]; for (i = 0; i < s.length; i++) tail[i >> 2] |= s.charCodeAt(i) << ((i % 4) << 3);
+            tail[i >> 2] |= 0x80 << ((i % 4) << 3); if (i > 55) { md5cycle(state, tail); tail = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]; }
+            tail[14] = n * 8; md5cycle(state, tail); return state;
+        }
+        function md5blk(s) { var md5blks = [], i; for (i = 0; i < 64; i += 4) { md5blks[i >> 2] = s.charCodeAt(i) + (s.charCodeAt(i + 1) << 8) + (s.charCodeAt(i + 2) << 16) + (s.charCodeAt(i + 3) << 24); } return md5blks; }
+        var hex_chr = '0123456789abcdef'.split('');
+        function rhex(n) { var s = '', j = 0; for (; j < 4; j++) s += hex_chr[(n >> (j * 8 + 4)) & 0x0f] + hex_chr[(n >> (j * 8)) & 0x0f]; return s; }
+        function hex(x) { for (var i = 0; i < x.length; i++) x[i] = rhex(x[i]); return x.join(''); }
+        function add32(a, b) { return (a + b) & 0xFFFFFFFF; }
+        if (md51('hello') !== '5d41402abc4b2a76b9719d911017c592') { function add32(x, y) { var lsw = (x & 0xffff) + (y & 0xffff), msw = (x >> 16) + (y >> 16) + (lsw >> 16); return (msw << 16) | (lsw & 0xffff); } }
+        return hex(md51(string));
+    }
+
+    // --- Get Gravatar URL from email (free, no auth, works client-side) ---
+    function getGravatarUrl(email, size = 200) {
+        const hash = md5(email.trim().toLowerCase());
+        // d=404 means return 404 if no gravatar (we'll detect and use fallback)
+        return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=404`;
+    }
+
+    // --- Get user profile name from email ---
+    function getUserNameFromEmail(email) {
+        const localPart = email.split('@')[0];
+        // Convert "john.doe" or "john_doe" or "jdoe" to readable name
+        return localPart
+            .replace(/[._-]/g, ' ')
+            .replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    // --- Fetch user profile (Gravatar + email parsing) ---
+    async function fetchUserProfile(email) {
+        const profile = {
+            email: email,
+            name: getUserNameFromEmail(email),
+            avatarUrl: null,
+            source: 'email',
+        };
+
+        // Try Gravatar
+        try {
+            const gravatarUrl = getGravatarUrl(email, 200);
+            const response = await fetch(gravatarUrl, { method: 'HEAD' });
+            if (response.ok) {
+                profile.avatarUrl = gravatarUrl;
+                profile.source = 'Gravatar';
+                console.log('[Profile] Gravatar found for', email);
+            } else {
+                console.log('[Profile] No Gravatar for', email, '— using initials');
+            }
+        } catch (err) {
+            console.log('[Profile] Gravatar check failed:', err.message);
+        }
+
+        return profile;
+    }
+
     /* ==================== REAL-TIME DATA APIs ==================== */
 
     // --- Wikipedia API: Fetch company description ---
-    async function fetchWikipediaData(companyName) {
+    async function fetchWikipediaData(companyName, domain) {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
+        const timeout = setTimeout(() => controller.abort(), 6000);
+        const tld = (domain || '').split('.').pop();
+
+        // For Belgian/Dutch domains, try NL Wikipedia FIRST (better local company coverage)
+        const isLocalFirst = ['be', 'nl'].includes(tld);
+
+        async function tryWikipedia(lang, queries) {
+            const wikiBase = lang === 'nl' ? 'nl.wikipedia.org' : 'en.wikipedia.org';
+            const sourceName = lang === 'nl' ? 'Wikipedia (NL)' : 'Wikipedia';
+            for (const query of queries) {
+                const searchUrl = `https://${wikiBase}/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=3&format=json&origin=*`;
+                const searchRes = await fetch(searchUrl, { signal: controller.signal });
+                const searchData = await searchRes.json();
+                if (searchData.query?.search?.length) {
+                    // Check top 3 results for best company match
+                    for (const result of searchData.query.search) {
+                        const title = result.title;
+                        const snippet = (result.snippet || '').toLowerCase();
+                        // Skip obvious non-company results
+                        if (['mythology', 'genus', 'fruit', 'village', 'asteroid', 'film', 'album'].some(w => snippet.includes(w) && !snippet.includes('company'))) continue;
+                        const extractUrl = `https://${wikiBase}/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=extracts&exintro=1&explaintext=1&format=json&origin=*`;
+                        const extractRes = await fetch(extractUrl, { signal: controller.signal });
+                        const extractData = await extractRes.json();
+                        const pages = extractData.query?.pages;
+                        const page = pages ? Object.values(pages)[0] : null;
+                        if (page?.extract && page.extract.length > 50) {
+                            const extractLower = page.extract.toLowerCase();
+                            // Validate it's likely about a company
+                            const companySignals = ['company', 'corporation', 'founded', 'headquarter', 'employees', 'business', 'group', 'groep', 'bedrijf', 'opgericht', 'nv', 'bv', 'services', 'industry'];
+                            const hasCompanySignal = companySignals.some(s => extractLower.includes(s));
+                            if (hasCompanySignal || queries.indexOf(query) === queries.length - 1) {
+                                clearTimeout(timeout);
+                                return {
+                                    title,
+                                    extract: page.extract.substring(0, 500),
+                                    url: `https://${wikiBase}/wiki/${encodeURIComponent(title)}`,
+                                    source: sourceName,
+                                    lang
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
         try {
-            // Try "company" variants FIRST to avoid disambiguation (e.g. "Apple" → fruit)
-            const searchVariants = [
+            const enVariants = [
                 companyName + ' company',
+                companyName + ' Group',
                 companyName + ' Inc',
                 companyName + ' corporation',
                 companyName
             ];
-            for (const query of searchVariants) {
-                const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=1&format=json&origin=*`;
-                const searchRes = await fetch(searchUrl, { signal: controller.signal });
-                const searchData = await searchRes.json();
-                if (searchData.query?.search?.length) {
-                    const title = searchData.query.search[0].title;
-                    const extractUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=extracts&exintro=1&explaintext=1&format=json&origin=*`;
-                    const extractRes = await fetch(extractUrl, { signal: controller.signal });
-                    const extractData = await extractRes.json();
-                    const pages = extractData.query?.pages;
-                    const page = pages ? Object.values(pages)[0] : null;
-                    if (page?.extract && page.extract.length > 50) {
-                        clearTimeout(timeout);
-                        return {
-                            title,
-                            extract: page.extract.substring(0, 500),
-                            url: `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`,
-                            source: 'Wikipedia',
-                            lang: 'en'
-                        };
-                    }
-                }
+            const nlVariants = [
+                companyName + ' bedrijf',
+                companyName + ' groep',
+                companyName
+            ];
+
+            if (isLocalFirst) {
+                // Try NL first for .be/.nl domains
+                const nlResult = await tryWikipedia('nl', nlVariants);
+                if (nlResult) return nlResult;
+                const enResult = await tryWikipedia('en', enVariants);
+                if (enResult) return enResult;
+            } else {
+                // Try EN first for other domains
+                const enResult = await tryWikipedia('en', enVariants);
+                if (enResult) return enResult;
+                const nlResult = await tryWikipedia('nl', nlVariants);
+                if (nlResult) return nlResult;
             }
-            // Fallback: Try Dutch Wikipedia
-            const nlUrl = `https://nl.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(companyName)}&srlimit=1&format=json&origin=*`;
-            const nlRes = await fetch(nlUrl, { signal: controller.signal });
-            const nlData = await nlRes.json();
-            if (nlData.query?.search?.length) {
-                const nlTitle = nlData.query.search[0].title;
-                const nlExtractUrl = `https://nl.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(nlTitle)}&prop=extracts&exintro=1&explaintext=1&format=json&origin=*`;
-                const nlExtractRes = await fetch(nlExtractUrl, { signal: controller.signal });
-                const nlExtractData = await nlExtractRes.json();
-                const nlPages = nlExtractData.query?.pages;
-                const nlPage = nlPages ? Object.values(nlPages)[0] : null;
-                if (nlPage?.extract && nlPage.extract.length > 50) {
-                    clearTimeout(timeout);
-                    return {
-                        title: nlTitle,
-                        extract: nlPage.extract.substring(0, 500),
-                        url: `https://nl.wikipedia.org/wiki/${encodeURIComponent(nlTitle)}`,
-                        source: 'Wikipedia (NL)',
-                        lang: 'nl'
-                    };
-                }
-            }
+
             clearTimeout(timeout);
             return null;
         } catch (err) {
             clearTimeout(timeout);
-            if (err.name === 'AbortError') console.log('[Wikipedia] Timeout after 5s');
+            if (err.name === 'AbortError') console.log('[Wikipedia] Timeout after 6s');
             else console.warn('[Wikipedia] API failed:', err.message);
             return null;
         }
     }
 
+    // --- Domain TLD to country mapping for Wikidata disambiguation ---
+    const tldCountryMap = {
+        'be': ['belgium', 'belgian', 'belgi', 'brussel', 'bruxelles', 'gent', 'antwerp'],
+        'nl': ['netherlands', 'dutch', 'nederland', 'amsterdam', 'rotterdam'],
+        'de': ['germany', 'german', 'deutsch', 'berlin', 'münchen', 'munich'],
+        'fr': ['france', 'french', 'français', 'paris'],
+        'uk': ['united kingdom', 'british', 'london', 'england'],
+        'co.uk': ['united kingdom', 'british', 'london', 'england'],
+        'us': ['american', 'united states'],
+        'jp': ['japan', 'japanese'],
+        'ch': ['switzerland', 'swiss', 'suisse'],
+        'lu': ['luxembourg', 'luxemburg'],
+        'at': ['austria', 'austrian', 'österreich'],
+        'it': ['italy', 'italian', 'italia'],
+        'es': ['spain', 'spanish', 'españa'],
+        'se': ['sweden', 'swedish', 'sverige'],
+        'dk': ['denmark', 'danish', 'danmark'],
+        'no': ['norway', 'norwegian', 'norge'],
+        'fi': ['finland', 'finnish', 'suomi'],
+        'ie': ['ireland', 'irish'],
+        'pt': ['portugal', 'portuguese'],
+        'pl': ['poland', 'polish', 'polska'],
+    };
+
+    function getCountryHintsFromDomain(domain) {
+        // Extract TLD(s) — e.g. "cronos.be" → "be", "company.co.uk" → "co.uk"
+        const parts = domain.split('.');
+        if (parts.length >= 3) {
+            const twoPartTld = parts.slice(-2).join('.');
+            if (tldCountryMap[twoPartTld]) return tldCountryMap[twoPartTld];
+        }
+        const tld = parts[parts.length - 1];
+        return tldCountryMap[tld] || null;
+    }
+
     // --- Wikidata: Fetch structured company data ---
-    async function fetchWikidataCompanyInfo(companyName) {
+    async function fetchWikidataCompanyInfo(companyName, domain) {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 8000);
+        const countryHints = getCountryHintsFromDomain(domain || '');
         try {
             // Step 1: Use Wikidata search API to find entity ID (fast, no SPARQL)
-            const searchUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(companyName)}&language=en&limit=5&format=json&origin=*`;
-            const searchRes = await fetch(searchUrl, { signal: controller.signal });
-            const searchData = await searchRes.json();
+            // Try both EN and the domain's language for better local company matching
+            const searchLanguages = ['en'];
+            const tld = (domain || '').split('.').pop();
+            const tldLangMap = { 'be': 'nl', 'nl': 'nl', 'de': 'de', 'fr': 'fr', 'es': 'es', 'it': 'it', 'pt': 'pt', 'pl': 'pl' };
+            if (tldLangMap[tld] && !searchLanguages.includes(tldLangMap[tld])) {
+                searchLanguages.push(tldLangMap[tld]);
+            }
 
-            if (!searchData.search?.length) {
+            let allResults = [];
+            for (const lang of searchLanguages) {
+                const searchUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(companyName)}&language=${lang}&limit=5&format=json&origin=*`;
+                const searchRes = await fetch(searchUrl, { signal: controller.signal });
+                const searchData = await searchRes.json();
+                if (searchData.search?.length) {
+                    allResults.push(...searchData.search);
+                }
+            }
+
+            // Deduplicate by entity ID
+            const seen = new Set();
+            allResults = allResults.filter(item => {
+                if (seen.has(item.id)) return false;
+                seen.add(item.id);
+                return true;
+            });
+
+            if (!allResults.length) {
                 clearTimeout(timeout);
                 console.log(`[Wikidata] No entity found for "${companyName}"`);
                 return null;
             }
 
-            // Find best match (prefer items with "company", "corporation", "enterprise" in description)
-            const companyKeywords = ['company', 'corporation', 'enterprise', 'software', 'firm', 'bedrijf', 'onderneming', 'platform', 'technology'];
-            let bestMatch = searchData.search[0]; // default: first result
-            for (const item of searchData.search) {
+            // Find best match using multi-factor scoring
+            const companyKeywords = ['company', 'corporation', 'enterprise', 'software', 'firm', 'bedrijf', 'onderneming', 'platform', 'technology', 'group', 'groep', 'holding', 'services', 'consulting', 'it company', 'multinational'];
+            const negativeKeywords = ['cannabis', 'marijuana', 'weed', 'drug', 'pharma', 'film', 'movie', 'band', 'song', 'album', 'novel', 'book', 'village', 'municipality', 'person', 'fictional'];
+
+            let bestMatch = allResults[0];
+            let bestScore = -999;
+
+            for (const item of allResults) {
                 const desc = (item.description || '').toLowerCase();
-                if (companyKeywords.some(kw => desc.includes(kw))) {
+                const label = (item.label || '').toLowerCase();
+                let score = 0;
+
+                // Positive: company-related keywords in description
+                for (const kw of companyKeywords) {
+                    if (desc.includes(kw)) score += 3;
+                }
+
+                // Negative: unrelated keywords
+                for (const kw of negativeKeywords) {
+                    if (desc.includes(kw)) score -= 10;
+                }
+
+                // Strong positive: country match from domain TLD
+                if (countryHints) {
+                    for (const hint of countryHints) {
+                        if (desc.includes(hint)) score += 8; // Strong country match bonus
+                    }
+                }
+
+                // Bonus: exact name match
+                if (label === companyName.toLowerCase()) score += 2;
+                if (label.includes(companyName.toLowerCase())) score += 1;
+
+                // Bonus: description mentions IT/tech for tech domains
+                if (['technology', 'software', 'it company', 'ict', 'digital', 'information technology'].some(t => desc.includes(t))) {
+                    score += 2;
+                }
+
+                console.log(`[Wikidata] Candidate: ${item.id} "${item.label}" (${desc}) — score: ${score}`);
+
+                if (score > bestScore) {
+                    bestScore = score;
                     bestMatch = item;
-                    break;
                 }
             }
 
             const entityId = bestMatch.id;
-            console.log(`[Wikidata] Found entity: ${entityId} — "${bestMatch.label}" (${bestMatch.description || 'no desc'})`);
+            console.log(`[Wikidata] Best match: ${entityId} — "${bestMatch.label}" (${bestMatch.description || 'no desc'}) — score: ${bestScore}`);
 
             // Step 2: SPARQL with known entity ID (fast, no text search)
             const sparql = `
@@ -2762,8 +2980,8 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
         const startTime = Date.now();
 
         const results = await Promise.allSettled([
-            fetchWikipediaData(companyName),
-            fetchWikidataCompanyInfo(companyName),
+            fetchWikipediaData(companyName, domain),
+            fetchWikidataCompanyInfo(companyName, domain),
         ]);
 
         const wikipedia = results[0].status === 'fulfilled' ? results[0].value : null;
@@ -4063,7 +4281,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
         );
     };
 
-    const ScanScreen = ({ email, onProceed, t, lang }) => {
+    const ScanScreen = ({ email, onProceed, t, lang, userProfile }) => {
         const domain = parseEmailDomain(email);
         const mockData = generateMockCompanyData(domain);
         const [companyData, setCompanyData] = React.useState(mockData);
@@ -4163,6 +4381,52 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
             <div className="screen-container screen-enter" style={{
                 padding: 'clamp(20px, 4vw, 40px)', maxWidth: 1100, margin: '0 auto'
             }}>
+                {/* User identification banner */}
+                {userProfile && React.createElement('div', {
+                    style: {
+                        display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16,
+                        padding: '10px 16px', borderRadius: 12,
+                        background: 'linear-gradient(135deg, rgba(167,139,250,0.06) 0%, rgba(6,214,160,0.04) 100%)',
+                        border: '1px solid rgba(167,139,250,0.12)',
+                        opacity: revealStep >= 0 ? 1 : 0, transition: 'opacity 0.5s ease'
+                    }
+                },
+                    userProfile.avatarUrl ? React.createElement('img', {
+                        src: userProfile.avatarUrl,
+                        alt: userProfile.name,
+                        style: { width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(167,139,250,0.3)' }
+                    }) : React.createElement('div', {
+                        style: {
+                            width: 40, height: 40, borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #A78BFA 0%, #06D6A0 100%)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 14, fontWeight: 700, color: '#fff'
+                        }
+                    }, userProfile.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()),
+                    React.createElement('div', { style: { flex: 1 } },
+                        React.createElement('div', {
+                            style: { fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.9)' }
+                        }, userProfile.name),
+                        React.createElement('div', {
+                            style: { fontSize: 11, color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', gap: 6 }
+                        },
+                            React.createElement('span', null, email),
+                            userProfile.source === 'Gravatar' && React.createElement('span', {
+                                style: { fontSize: 9, color: 'rgba(6,214,160,0.7)', background: 'rgba(6,214,160,0.08)', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }
+                            }, 'Gravatar ✓')
+                        )
+                    ),
+                    React.createElement('div', {
+                        style: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'rgba(167,139,250,0.6)', fontStyle: 'italic' }
+                    },
+                        React.createElement('svg', { width: 12, height: 12, viewBox: '0 0 24 24', fill: 'none', stroke: 'rgba(167,139,250,0.5)', strokeWidth: 2 },
+                            React.createElement('path', { d: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2' }),
+                            React.createElement('circle', { cx: 12, cy: 7, r: 4 })
+                        ),
+                        lang === 'nl' ? 'Geïdentificeerd' : 'Identified'
+                    )
+                )}
+
                 {/* Company header - compact */}
                 <div style={{
                     display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24,
@@ -5137,6 +5401,37 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
 
     /* ==================== MAIN APP ==================== */
 
+    // --- User Profile Avatar component ---
+    const UserProfileBadge = ({ userProfile, lang }) => {
+        if (!userProfile) return null;
+        const initials = userProfile.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        return React.createElement('div', {
+            style: {
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '4px 10px 4px 4px', borderRadius: 20,
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+                cursor: 'default', transition: 'all 0.2s ease'
+            },
+            title: userProfile.email
+        },
+            userProfile.avatarUrl ? React.createElement('img', {
+                src: userProfile.avatarUrl,
+                alt: userProfile.name,
+                style: { width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }
+            }) : React.createElement('div', {
+                style: {
+                    width: 28, height: 28, borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #A78BFA 0%, #06D6A0 100%)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: 0.5
+                }
+            }, initials),
+            React.createElement('span', {
+                style: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 500, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+            }, userProfile.name)
+        );
+    };
+
     function App() {
         const [screen, setScreen] = useState('splash');
         const [email, setEmail] = useState('');
@@ -5146,12 +5441,25 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
         const [completedSteps, setCompletedSteps] = useState([]);
         const [currentStep, setCurrentStep] = useState('landing');
         const [agentResults, setAgentResults] = useState(null);
+        const [userProfile, setUserProfile] = useState(null);
 
         const showStepper = screen !== 'landing' && screen !== 'splash' && screen !== 'welcome';
 
         useEffect(() => {
             document.body.className = showStepper ? 'with-stepper' : '';
         }, [showStepper]);
+
+        // Fetch user profile when email is set
+        useEffect(() => {
+            if (email) {
+                fetchUserProfile(email).then(profile => {
+                    setUserProfile(profile);
+                    console.log('[Profile] User profile loaded:', profile);
+                });
+            } else {
+                setUserProfile(null);
+            }
+        }, [email]);
 
         const handleLandingProceed = (emailAddr) => {
             setEmail(emailAddr);
@@ -5183,6 +5491,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
             setEmail('');
             setCompanyData(null);
             setAgentResults(null);
+            setUserProfile(null);
             setCurrentStep('landing');
             setScreenTransition('enter');
         };
@@ -5222,7 +5531,8 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                         />
                     </div>
                     <div className="nav-center">{t(lang).appTitle}</div>
-                    <div className="nav-right">
+                    <div className="nav-right" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        {userProfile && <UserProfileBadge userProfile={userProfile} lang={lang} />}
                         <LanguageToggle lang={lang} setLang={setLang} />
                     </div>
                 </nav>
@@ -5249,7 +5559,7 @@ SELECT ?itemLabel ?founded ?hqLabel ?employees ?revenue ?industryLabel ?ceoLabel
                     <LandingScreen onProceed={handleLandingProceed} t={t} lang={lang} />
                 )}
                 {screen === 'scan' && (
-                    <ScanScreen email={email} onProceed={handleScanProceed} t={t} lang={lang} />
+                    <ScanScreen email={email} onProceed={handleScanProceed} t={t} lang={lang} userProfile={userProfile} />
                 )}
                 {screen === 'engine' && companyData && (
                     <DecisionEngineScreen companyData={companyData} onComplete={handleEngineComplete} t={t} lang={lang} />
