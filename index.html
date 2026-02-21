@@ -2741,8 +2741,9 @@ Datum: ${datePart}`
                             const companyLower = companyName.toLowerCase();
 
                             // Validate: article title or extract must mention the company name
-                            const mentionsCompany = titleLower.includes(companyLower) || extractLower.includes(companyLower);
-                            if (!mentionsCompany) {
+                            const companyInTitle = titleLower.includes(companyLower);
+                            const companyInExtract = extractLower.includes(companyLower);
+                            if (!companyInTitle && !companyInExtract) {
                                 console.log(`[Wikipedia] Skipping "${title}" — doesn't mention "${companyName}"`);
                                 continue;
                             }
@@ -2762,8 +2763,11 @@ Datum: ${datePart}`
                             const strongRejectSignals = ['is a film', 'is een film', 'is a song', 'is een lied', 'is a genus', 'is een geslacht', 'metalband', 'metal band', 'muziekgroep', 'rock band', 'punk band', 'pop band', 'is een band', 'heavy metal band', 'vocalist', 'bassist', 'guitarist', 'drummer'];
                             const hasRejectSignal = rejectSignals.some(s => extractLower.includes(s));
                             const hasStrongReject = strongRejectSignals.some(s => extractLower.includes(s));
-                            if (titleReject || hasStrongReject || (hasRejectSignal && !hasCompanySignal)) {
-                                console.log(`[Wikipedia] Skipping "${title}" — reject (title: ${titleReject}, strong: ${hasStrongReject}, company: ${hasCompanySignal})`);
+                            // If company name not in title (only in extract), be stricter:
+                            // reject signals block even with company signals (article is about something ELSE that mentions our company)
+                            const strictMode = !companyInTitle;
+                            if (titleReject || hasStrongReject || (hasRejectSignal && (!hasCompanySignal || strictMode))) {
+                                console.log(`[Wikipedia] Skipping "${title}" — reject (title: ${titleReject}, strong: ${hasStrongReject}, company: ${hasCompanySignal}, strict: ${strictMode})`);
                                 continue;
                             }
 
